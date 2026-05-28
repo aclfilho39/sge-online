@@ -2,51 +2,48 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGE Online - Diagnóstico de Gestão Esportiva</title>
+    <title>SGE Online - Admin</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script>
-        // CONFIGURAÇÃO DO SUPABASE (Corrigida)
-        const SGE_SUPABASE_URL = 'https://rsnfdchhggjlkwkqqzpz.supabase.co';
-        const SGE_SUPABASE_ANON_KEY = 'sb_publishable_dmC63IguNYYZZfKcs4-0vg_tX5ppmJB';
-        
-        // Inicialização do cliente
-        const sb = supabase.createClient(SGE_SUPABASE_URL, SGE_SUPABASE_ANON_KEY);
+</head>
+<body class="bg-slate-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-xl shadow-lg w-96">
+        <h2 class="text-2xl font-black text-slate-900 mb-6 text-center">Acesso Administrativo</h2>
+        <form id="loginForm" class="space-y-4">
+            <input type="email" id="email" required class="w-full p-3 border rounded-xl" placeholder="E-mail">
+            <div class="relative">
+                <input type="password" id="password" required class="w-full p-3 border rounded-xl" placeholder="Senha">
+                <button type="button" onclick="toggleSenha()" class="absolute right-3 top-3 text-sm font-bold text-slate-500">VER</button>
+            </div>
+            <button type="submit" class="w-full bg-emerald-500 text-white p-3 rounded-xl font-black">Acessar painel</button>
+        </form>
+    </div>
 
-        // Função de Login Otimizada
-        async function realizarLogin(event) {
-            event.preventDefault();
+    <script>
+        // CONFIGURAÇÃO EXATA
+        const SUPABASE_URL = 'https://rsnfdchhggjlkwkqqzpz.supabase.co';
+        const SUPABASE_KEY = 'sb_publishable_dmC63IguNYYZZfKcs4-0vg_tX5ppmJB';
+
+        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+        function toggleSenha() {
+            const p = document.getElementById('password');
+            p.type = p.type === 'password' ? 'text' : 'password';
+        }
+
+        document.getElementById('loginForm').onsubmit = async (e) => {
+            e.preventDefault();
             const email = document.getElementById('email').value.toLowerCase().trim();
             const password = document.getElementById('password').value;
 
             try {
-                const { data, error } = await sb.auth.signInWithPassword({
-                    email: email,
-                    password: password,
-                });
-
+                const { data, error } = await sb.auth.signInWithPassword({ email, password });
                 if (error) throw error;
-
-                alert("Acesso concedido!");
-                window.location.href = 'painel.html'; // Altere para o seu arquivo de painel
-            } catch (error) {
-                alert("Erro: " + error.message);
-                console.error("Erro Supabase:", error);
+                window.location.href = 'painel.html';
+            } catch (err) {
+                alert("Erro: " + err.message);
             }
-        }
+        };
     </script>
-</head>
-<body class="bg-slate-100 flex items-center justify-center min-h-screen">
-    <div class="card w-full max-w-md p-8 bg-white shadow-lg rounded-2xl">
-        <h2 class="text-2xl font-black text-slate-900 mb-6 text-center">Acesso Administrativo</h2>
-        <form onsubmit="realizarLogin(event)" class="space-y-4">
-            <input type="email" id="email" placeholder="E-mail administrativo" required class="w-full p-3 border rounded-xl">
-            <input type="password" id="password" placeholder="Senha" required class="w-full p-3 border rounded-xl">
-            <button type="submit" class="w-full py-3 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black rounded-xl transition-all">
-                Acessar painel
-            </button>
-        </form>
-    </div>
 </body>
 </html>
