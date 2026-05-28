@@ -1,87 +1,179 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>SGE Online - Admin</title>
-    <!-- Carrega o Tailwind CSS para o design profissional -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        /* Garante que o fundo fique profissional igual a sua foto */
-        body { background-color: #f1f5f9; }
-    </style>
-</head>
-<body class="flex items-center justify-center h-screen">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGE Online - Diagnóstico de Gestão Esportiva</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+:root { --dark:#071425; --gold:#d9a928; --green:#10b981; --blue:#0f2a44; }
+* { box-sizing:border-box; }
+body { font-family:'Inter', Arial, sans-serif; background:#f8fafc; color:#1e293b; }
+.card { background:#fff; border:1px solid #e2e8f0; border-radius:18px; box-shadow:0 10px 30px rgba(15,23,42,.05); }
+.q-option { border:1px solid #e2e8f0; border-radius:14px; padding:13px 14px; display:flex; align-items:flex-start; gap:10px; cursor:pointer; transition:.18s; background:#fff; }
+.q-option:hover { background:#f8fafc; border-color:#10b981; transform:translateY(-1px); }
+.q-option input:checked + span { color:#047857; font-weight:800; }
+.section-title { background:#e6f4ea; color:#065f46; border-radius:999px; padding:6px 14px; font-size:11px; font-weight:900; display:inline-block; letter-spacing:.07em; text-transform:uppercase; }
+input,textarea,select { outline:none; border:1px solid #e2e8f0; transition:.18s; }
+input:focus,textarea:focus,select:focus { border-color:#10b981; box-shadow:0 0 0 4px rgba(16,185,129,.10); background:#fff!important; }
+.hidden { display:none!important; }
+.admin-tab-active { background:#10b981!important; color:#071425!important; }
+.admin-tab { background:#0f172a; color:#e2e8f0; border:1px solid #1e293b; padding:10px 14px; border-radius:12px; font-weight:800; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+.badge { display:inline-flex; align-items:center; border-radius:999px; padding:4px 10px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:.08em; }
+.bg-mesh { background-image:radial-gradient(at 0% 0%,rgba(16,185,129,.06) 0,transparent 52%),radial-gradient(at 90% 0%,rgba(217,169,40,.08) 0,transparent 45%); }
+.report-only { display:none; }
+.print-table { width:100%; border-collapse:collapse; font-size:10px; margin-top:10px; }
+.print-table th,.print-table td { border:1px solid #777; padding:5px; vertical-align:top; }
+.print-table th { background:#f1f5f9; font-weight:900; }
+.print-page-title { font-size:22px; font-weight:900; margin-bottom:4px; }
+.print-subtitle { font-size:11px; color:#475569; margin-bottom:14px; }
+.print-box { border:1px solid #777; padding:8px; margin:8px 0; page-break-inside:avoid; }
+@media print {
+  @page { size:A4; margin:12mm; }
+  body { background:#fff!important; color:#000!important; font-size:11px; }
+  body.print-cadastro header, body.print-cadastro main,
+  body.print-analise header, body.print-analise main { display:none!important; }
+  body.print-cadastro #printCadastro { display:block!important; }
+  body.print-cadastro #printAnalise { display:none!important; }
+  body.print-analise #printAnalise { display:block!important; }
+  body.print-analise #printCadastro { display:none!important; }
+  body:not(.print-cadastro):not(.print-analise) .no-print { display:none!important; }
+  .card { box-shadow:none!important; border:1px solid #94a3b8!important; page-break-inside:avoid; }
+}
 
-    <!-- Card Principal (Onde fica o formulário) -->
-    <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-100">
+.header-prof { display:block; font-size:12px; color:#94a3b8; font-weight:700; margin-top:2px; }
+.header-mainline { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+.header-mainline .title-divider { color:#10b981; font-weight:900; }
+.hero-promo-img { width:100%; max-width:460px; margin:0 auto; display:block; border-radius:20px; box-shadow:0 18px 40px rgba(15,23,42,.12); }
+.compare-img { width:100%; height:300px; object-fit:cover; border-radius:18px; box-shadow:0 14px 28px rgba(15,23,42,.08); }
+.tunico-footer { display:flex; justify-content:flex-end; margin-top:8px; }
+.tunico-footer img { width:150px; max-width:38vw; display:block; filter:drop-shadow(0 10px 18px rgba(15,23,42,.12)); }
+.kpi-empty { color:#64748b; font-size:14px; font-weight:800; line-height:1.3; }
+@media (max-width: 768px) { .compare-img { height:220px; } }
+@media print { .tunico-footer { display:none !important; } }
+
+
+.launch-blink-badge { display:inline-flex; align-items:center; gap:8px; margin:0 auto 18px auto; padding:10px 20px; border-radius:999px; background:linear-gradient(90deg,#facc15,#d97706); color:#071425; font-weight:1000; font-size:12px; text-transform:uppercase; letter-spacing:.09em; box-shadow:0 12px 28px rgba(217,119,6,.24); animation:launchBlink 1.15s infinite; }
+@keyframes launchBlink { 0%,100%{opacity:1; transform:scale(1);} 50%{opacity:.45; transform:scale(1.025);} }
+
+</style>
+</head>
+<body class="bg-mesh min-h-screen">
+<header class="bg-slate-950 text-white sticky top-0 z-40 shadow-xl no-print border-b border-slate-800">
+  <div class="max-w-7xl mx-auto p-4 md:px-8 flex flex-col md:flex-row gap-4 md:items-center md:justify-between">
+    <div class="flex items-center gap-4">
+      <div class="w-12 h-12 rounded-xl bg-gradient-to-tr from-amber-400 to-emerald-400 text-slate-950 grid place-items-center font-black shadow-lg"><i class="fa-solid fa-trophy text-2xl"></i></div>
+      <div><div class="header-mainline"><h1 class="font-black text-2xl tracking-tight">SGE Online</h1><span class="title-divider">•</span><span class="text-sm md:text-base font-black text-slate-200">Prof. Edson Pereira de Andrade</span></div><p class="text-xs text-slate-400 font-medium">Diagnóstico de Gestão Esportiva • Prof. Edson Pereira de Andrade</p></div>
+    </div>
+    <nav class="flex flex-wrap gap-2">
+      <button onclick="show('form')" class="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-black text-sm transition-all shadow-md"><i class="fa-solid fa-file-signature"></i> Responder</button>
+      <button onclick="show('checklist')" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 font-bold text-sm text-slate-200 border border-slate-800"><i class="fa-solid fa-list-check text-slate-400"></i> Checklist</button>
+      <button onclick="show('login')" class="px-5 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 font-bold text-sm text-slate-200 border border-slate-800"><i class="fa-solid fa-lock text-emerald-400"></i> Admin</button>
+    </nav>
+  </div>
+</header>
+<main class="max-w-7xl mx-auto p-4 md:p-8 space-y-8">
+  
+  <!-- SESSÃO FORMULÁRIO -->
+  <section id="form" class="space-y-8 hidden">
+      <!-- O conteúdo do seu formulário original ficaria aqui -->
+  </section>
+
+  <!-- SESSÃO LOGIN (A que está dando problema e foi corrigida) -->
+  <section id="login" class="max-w-md mx-auto mt-10">
+    <div class="card p-8 bg-white border border-slate-200 rounded-3xl shadow-xl">
+        <h2 class="text-2xl font-black text-slate-900 mb-6 text-center">Acesso administrativo</h2>
+        <p class="text-slate-500 text-sm text-center mb-6">Informe seu e-mail administrativo e senha para acessar o painel.</p>
         
-        <!-- Cabeçalho do Card -->
-        <div class="text-center mb-8">
-            <h1 class="text-3xl font-black text-slate-900">SGE Online</h1>
-            <p class="text-slate-500 text-sm mt-1">Acesso Administrativo</p>
-        </div>
-        
-        <!-- Formulário de Login -->
-        <form id="loginForm" class="space-y-5">
+        <form id="adminLoginForm" class="space-y-4">
             <div>
-                <input type="email" id="email" required 
-                    class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
-                    placeholder="E-mail administrativo">
+                <input type="email" id="adminEmail" required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="E-mail administrativo">
             </div>
-            
             <div class="relative">
-                <input type="password" id="password" required 
-                    class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
-                    placeholder="Senha">
-                <button type="button" onclick="toggleSenha()" 
-                    class="absolute right-4 top-4 text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors">
-                    VER
-                </button>
+                <input type="password" id="adminPassword" required class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" placeholder="Senha">
+                <button type="button" onclick="toggleSenha()" class="absolute right-4 top-4 text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors">VER</button>
             </div>
-            
-            <button type="submit" 
-                class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-500/20">
-                Acessar painel
-            </button>
+            <button type="submit" class="w-full py-4 bg-slate-900 hover:bg-slate-800 text-white font-black rounded-2xl transition-all shadow-lg">Acessar painel</button>
         </form>
     </div>
+  </section>
 
-    <script>
-        // CONFIGURAÇÃO DO SUPABASE
-        const SUPABASE_URL = 'https://rsnfdchhggjlkwkqqzpz.supabase.co';
-        const SUPABASE_KEY = 'sb_publishable_dmC63IguNYYZZfKcs4-0vg_tX5ppmJB';
+</main>
 
-        const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+<script>
+    // --- LÓGICA DE NAVEGAÇÃO ENTRE AS ABAS (RESPONDER / ADMIN) ---
+    function show(sectionId) {
+        document.getElementById('form').classList.add('hidden');
+        document.getElementById('login').classList.add('hidden');
+        // Se houver uma seção 'checklist', adicione aqui também:
+        // document.getElementById('checklist').classList.add('hidden'); 
+        
+        document.getElementById(sectionId).classList.remove('hidden');
+    }
 
-        // Função para mostrar/esconder senha
-        function toggleSenha() {
-            const p = document.getElementById('password');
-            p.type = p.type === 'password' ? 'text' : 'password';
-        }
+    // Mostrar a aba de login por padrão para testes (ou mude para 'form')
+    show('login');
 
-        // Função de envio do formulário
-        document.getElementById('loginForm').onsubmit = async (e) => {
-            e.preventDefault();
-            const email = document.getElementById('email').value.toLowerCase().trim();
-            const password = document.getElementById('password').value;
+    // --- LÓGICA DO SUPABASE (CORRIGIDA) ---
+    const SUPABASE_URL = 'https://rsnfdchhggjlkwkqqzpz.supabase.co';
+    const SUPABASE_KEY = 'sb_publishable_dmC63IguNYYZZfKcs4-0vg_tX5ppmJB';
+    const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-            try {
-                const { data, error } = await sb.auth.signInWithPassword({
-                    email: email,
-                    password: password
-                });
+    function toggleSenha() {
+        const p = document.getElementById('adminPassword');
+        p.type = p.type === 'password' ? 'text' : 'password';
+    }
 
-                if (error) throw error;
+    document.getElementById('adminLoginForm').onsubmit = async (e) => {
+        e.preventDefault();
+        
+        // Pega os valores, força minúsculo no e-mail e remove espaços
+        const email = document.getElementById('adminEmail').value.toLowerCase().trim();
+        const password = document.getElementById('adminPassword').value;
 
-                alert("Login com sucesso!");
-                window.location.href = 'painel.html'; // Certifique-se que este arquivo existe
-            } catch (err) {
-                console.error("Erro Supabase:", err);
-                alert("Erro: " + err.message);
+        // Feedback visual
+        const btn = e.target.querySelector('button[type="submit"]');
+        const textOriginal = btn.innerHTML;
+        btn.innerHTML = 'Conectando...';
+        btn.disabled = true;
+
+        try {
+            const { data, error } = await sb.auth.signInWithPassword({
+                email: email,
+                password: password
+            });
+
+            if (error) {
+                throw error;
             }
-        };
-    </script>
+
+            alert("Acesso autorizado!");
+            // Redireciona para o painel
+            window.location.href = 'painel.html'; 
+
+        } catch (err) {
+            console.error("ERRO NO SUPABASE:", err);
+            
+            // Tratamento de mensagens amigáveis
+            if (err.message.includes("Invalid login credentials")) {
+                alert("E-mail ou senha incorretos.");
+            } else if (err.message.includes("Email not confirmed")) {
+                 alert("Seu e-mail ainda não foi confirmado. Verifique a configuração no Supabase.");
+            } else {
+                 alert("Erro ao conectar: " + err.message);
+            }
+        } finally {
+            // Restaura o botão
+            btn.innerHTML = textOriginal;
+            btn.disabled = false;
+        }
+    };
+</script>
 </body>
 </html>
