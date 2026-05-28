@@ -2,45 +2,83 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SGE Online - Admin</title>
+    <!-- Carrega o Tailwind CSS para o design profissional -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* Garante que o fundo fique profissional igual a sua foto */
+        body { background-color: #f1f5f9; }
+    </style>
 </head>
-<body class="bg-slate-100 flex items-center justify-center h-screen">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-96">
-        <h2 class="text-2xl font-black text-slate-900 mb-6 text-center">Acesso Administrativo</h2>
-        <form id="loginForm" class="space-y-4">
-            <input type="email" id="email" required class="w-full p-3 border rounded-xl" placeholder="E-mail">
-            <div class="relative">
-                <input type="password" id="password" required class="w-full p-3 border rounded-xl" placeholder="Senha">
-                <button type="button" onclick="toggleSenha()" class="absolute right-3 top-3 text-sm font-bold text-slate-500">VER</button>
+<body class="flex items-center justify-center h-screen">
+
+    <!-- Card Principal (Onde fica o formulário) -->
+    <div class="bg-white p-10 rounded-3xl shadow-2xl w-full max-w-sm border border-slate-100">
+        
+        <!-- Cabeçalho do Card -->
+        <div class="text-center mb-8">
+            <h1 class="text-3xl font-black text-slate-900">SGE Online</h1>
+            <p class="text-slate-500 text-sm mt-1">Acesso Administrativo</p>
+        </div>
+        
+        <!-- Formulário de Login -->
+        <form id="loginForm" class="space-y-5">
+            <div>
+                <input type="email" id="email" required 
+                    class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
+                    placeholder="E-mail administrativo">
             </div>
-            <button type="submit" class="w-full bg-emerald-500 text-white p-3 rounded-xl font-black">Acessar painel</button>
+            
+            <div class="relative">
+                <input type="password" id="password" required 
+                    class="w-full p-4 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-emerald-500 outline-none transition-all" 
+                    placeholder="Senha">
+                <button type="button" onclick="toggleSenha()" 
+                    class="absolute right-4 top-4 text-xs font-bold text-slate-400 hover:text-emerald-600 transition-colors">
+                    VER
+                </button>
+            </div>
+            
+            <button type="submit" 
+                class="w-full py-4 bg-emerald-500 hover:bg-emerald-600 text-white font-black rounded-2xl transition-all shadow-lg shadow-emerald-500/20">
+                Acessar painel
+            </button>
         </form>
     </div>
 
     <script>
-        // CONFIGURAÇÃO EXATA
+        // CONFIGURAÇÃO DO SUPABASE
         const SUPABASE_URL = 'https://rsnfdchhggjlkwkqqzpz.supabase.co';
         const SUPABASE_KEY = 'sb_publishable_dmC63IguNYYZZfKcs4-0vg_tX5ppmJB';
 
         const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+        // Função para mostrar/esconder senha
         function toggleSenha() {
             const p = document.getElementById('password');
             p.type = p.type === 'password' ? 'text' : 'password';
         }
 
+        // Função de envio do formulário
         document.getElementById('loginForm').onsubmit = async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value.toLowerCase().trim();
             const password = document.getElementById('password').value;
 
             try {
-                const { data, error } = await sb.auth.signInWithPassword({ email, password });
+                const { data, error } = await sb.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+
                 if (error) throw error;
-                window.location.href = 'painel.html';
+
+                alert("Login com sucesso!");
+                window.location.href = 'painel.html'; // Certifique-se que este arquivo existe
             } catch (err) {
+                console.error("Erro Supabase:", err);
                 alert("Erro: " + err.message);
             }
         };
