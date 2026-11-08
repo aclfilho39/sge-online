@@ -142,7 +142,7 @@ async function fromCatalog(query,page){
  return {items,hasMore:false};
 }
 function openArtistRecording(t){
- if(!t || t.source!=='catalog')return;
+ if(!t || !['catalog','youtube'].includes(t.source))return;
  const artist=String(t.artist||'').trim(),title=String(t.title||'').trim();
  if(!artist||!title){toast('Não foi possível identificar o artista.');return}
  const q=[artist,title,'official audio'].join(' ');
@@ -191,12 +191,17 @@ async function fromYouTube(query,page){
  let items=(Array.isArray(r.results)?r.results:[]).map(t=>{
   const url=urlSafe(t.url);
   if(!url||!t.title)return null;
-  const title=musicTag(t.title),artist=musicTag(t.artist||'Artista desconhecido');
+  const artist=musicTag(t.artist||'Artista desconhecido');let title=musicTag(t.title);if(title.toLowerCase().startsWith((artist+' - ').toLowerCase()))title=title.slice(artist.length+3).trim();
   return {id:'yt:'+String(t.id||url),title,artist,album:'',source:'youtube',image:urlSafe(t.image)||'',originUrl:url,playUrl:'',downloadable:false,downloadUrl:null,
     duration:Number(t.duration)||0,license:'Reprodução de plataforma externa (experimental)',licenseUrl:'',genre:''};
  }).filter(Boolean);
  if(state.searchKind==='artist'){
-  items=items.filter(t=>!(/(?:\bcover\b|\btribute\b|\bkaraoke\b|\breaction\b)/i.test(t.title+' '+t.artist)));
+  const queryName=normalizeArtistName(query);
+  items=items.filter(t=>{
+   const artistName=normalizeArtistName(t.artist),titleName=normalizeArtistName(t.title);
+   if(/(?:\bcover\b|\btribute\b|\bkaraoke\b|\breaction\b)/i.test(t.title+' '+t.artist))return false;
+   return artistName===queryName || artistName===queryName+' topic' || artistName===queryName+' official' || titleName.startsWith(queryName+' ');
+  });
  }
  return {items:unique(items),hasMore:false};
 }
