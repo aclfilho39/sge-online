@@ -28,7 +28,8 @@ final class CatalogBridge {
     private final WebView web;
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
     private final AtomicInteger latestSearch = new AtomicInteger(0);
-    private final AtomicInteger latestSuggest = new AtomicInteger(0);
+    private final AtomicInteger latestArtistSuggest = new AtomicInteger(0);
+    private final AtomicInteger latestSongSuggest = new AtomicInteger(0);
     private static final int MAX_RESPONSE_BYTES = 2_000_000;
 
     CatalogBridge(Activity activity, WebView web) {
@@ -40,7 +41,7 @@ final class CatalogBridge {
     public void search(String searchText, int reqId, String kind) {
         if(reqId <= 0) return;
         final String query = searchText == null ? "" : searchText.trim();
-        if(query.isEmpty() || query.length() > 120 || !("artist".equals(kind) || "song".equals(kind))) {
+        if(query.isEmpty() || query.length() > 120 || !("artist".equals(kind) || "song".equals(kind) || "all".equals(kind))) {
             answer(reqId, "{\"error\":\"Pesquisa inválida\",\"results\":[]}");
             return;
         }
@@ -68,18 +69,19 @@ final class CatalogBridge {
         if(reqId<=0||q.length()<2||q.length()>120||!("artist".equals(kind)||"song".equals(kind))){
             answerSuggestion(reqId,"{\"results\":[]}");return;
         }
-        latestSuggest.set(reqId);
+        final AtomicInteger latest="song".equals(kind)?latestSongSuggest:latestArtistSuggest;
+        latest.set(reqId);
         pool.execute(() -> {
-            if(reqId!=latestSuggest.get())return;
+            if(reqId!=latest.get())return;
             try {
                 String response=fetchSuggestions(q,kind,"BR");
                 JSONObject parsed=new JSONObject(response);
                 if(parsed.optJSONArray("results")==null)throw new IllegalStateException("Sugestões inválidas");
-                if(parsed.optJSONArray("results").length()==0 && reqId==latestSuggest.get())
+                if(parsed.optJSONArray("results").length()==0 && reqId==latest.get())
                     response=fetchSuggestions(q,kind,"US");
-                if(reqId==latestSuggest.get())answerSuggestion(reqId,response);
+                if(reqId==latest.get())answerSuggestion(reqId,response);
             }catch(Exception e){
-                if(reqId==latestSuggest.get())answerSuggestion(reqId,"{\"results\":[]}");
+                if(reqId==latest.get())answerSuggestion(reqId,"{\"results\":[]}");
             }
         });
     }
@@ -101,7 +103,7 @@ final class CatalogBridge {
 
     private String fetchCatalog(String query, String kind, String country) throws Exception {
         String endpoint = "https://itunes.apple.com/search?media=music&entity=song&country=" + country
-            + "&limit=100&attribute=" + ("artist".equals(kind) ? "artistTerm" : "songTerm")
+            + "&limit=100" + ("all".equals(kind)?"":"&attribute=" + ("artist".equals(kind)?"artistTerm":"songTerm"))
             + "&term=" + URLEncoder.encode(query, "UTF-8");
         return fetchUrl(endpoint);
     }
@@ -114,7 +116,7 @@ final class CatalogBridge {
             conn.setReadTimeout(12000);
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("User-Agent", "ACLFUTURE-Music/1.6 Android");
+            conn.setRequestProperty("User-Agent", "ACLFUTURE-Music/1.7 Android");
             if(conn.getResponseCode() != 200) throw new java.io.IOException("Catálogo HTTP " + conn.getResponseCode());
             String type=conn.getContentType();
             if(type!=null && !type.contains("json") && !type.contains("text/javascript"))

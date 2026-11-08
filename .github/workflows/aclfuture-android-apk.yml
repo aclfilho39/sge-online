@@ -1,4 +1,4 @@
-name: ACLFUTURE Music 1.6 — APK com player interno
+name: ACLFUTURE Music 1.7 — busca combinada de músicas e artistas
 on:
   workflow_dispatch:
   push:
@@ -62,6 +62,22 @@ jobs:
               names=[x.get('artistName','') for x in records]
               print('SUGESTOES:',term,'quantidade:',len(names),'exemplos:',names[:7])
           PY
+      - name: Testar busca por nome de musica e artista em catalogo real
+        continue-on-error: true
+        run: |
+          python3 - <<'PYTEST'
+          import json, urllib.request, urllib.parse, unicodedata
+          tests=[('Infinita Highway','Engenheiros do Hawaii'),('November Rain',"Guns N' Roses"),('Bohemian Rhapsody','Queen')]
+          def clean(x):
+              return ''.join(c for c in unicodedata.normalize('NFD',x.casefold()) if not unicodedata.combining(c))
+          for title,artist in tests:
+              p=urllib.parse.urlencode(dict(term=title,media='music',entity='song',attribute='songTerm',country='BR',limit='100'))
+              with urllib.request.urlopen('https://itunes.apple.com/search?'+p,timeout=20) as r:
+                  songs=json.load(r).get('results',[])
+              matching=[x for x in songs if clean(artist) in clean(x.get('artistName','')) and clean(title) in clean(x.get('trackName',''))]
+              print('FAIXA:',title,'| ARTISTA:',artist,'| REGISTROS ENCONTRADOS:',len(matching))
+              if not matching: raise RuntimeError('Nenhuma correspondencia encontrada para '+title+' - '+artist)
+          PYTEST
       - name: Testar JavaScript sem erro de sintaxe
         run: node --check android-studio/app/src/main/assets/www/app.js
       - name: Testar busca e extração de áudio real (não bloqueante)
@@ -71,17 +87,17 @@ jobs:
       - name: Publicar artefato APK
         uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-1.6-APK
+          name: ACLFUTURE-Music-Android-1.7-APK
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK para download via navegador Android
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-6-autocomplete-premium'
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-7-busca-musicas'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.6_BUSCA_INTELIGENTE.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.7_BUSCA_MUSICAS.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f release/ACLFUTURE_Music_1.6_BUSCA_INTELIGENTE.apk
+          git add -f release/ACLFUTURE_Music_1.7_BUSCA_MUSICAS.apk
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish ACLFUTURE Music 1.6 player interno APK [skip ci]'
-            git push origin HEAD:refs/heads/aclfuture-music-android-1-6-autocomplete-premium
+            git commit -m 'Publish ACLFUTURE Music 1.7 music-title search APK [skip ci]'
+            git push origin HEAD:refs/heads/aclfuture-music-android-1-7-busca-musicas
           fi

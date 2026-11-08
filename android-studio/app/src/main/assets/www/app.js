@@ -10,7 +10,7 @@ const fmt=t=>{if(!Number.isFinite(t)||t<0)return '—';const s=Math.floor(t);ret
 const prettySource={youtube:'YouTube Music',catalog:'Gravação original',audius:'Audius',openverse:'Openverse',ftu:'Free To Use',local:'Meus arquivos'};
 const musicTag=tag=>String(tag||'').replace(/\s+/g,' ').trim();
 const audio=$('#audio');let toastTimer,searchTimer,requestNumber=0,playRequest=0,installPrompt=null,dbPromise,catalogRequestId=0,ytRequestId=0;const activeDownloads=new Set();const pendingCatalog=new Map(),pendingYT=new Map(),pendingYTResolve=new Map();
-const state={view:'inicio',source:'catalog',query:'',searchKind:'artist',page:1,hasMore:false,sourceHasMore:{},tracks:[],allResults:[],queue:[],current:null,idx:-1,shuffle:false,repeat:false,loading:false,favorites:readStore('acl_music_favorites',{}),playlists:readStore('acl_music_playlists',{}),playlistId:null,offline:[],sourceErrors:[],loadingCount:0};
+const state={view:'inicio',source:'catalog',query:'',searchKind:'all',page:1,hasMore:false,sourceHasMore:{},tracks:[],allResults:[],queue:[],current:null,idx:-1,shuffle:false,repeat:false,loading:false,favorites:readStore('acl_music_favorites',{}),playlists:readStore('acl_music_playlists',{}),playlistId:null,offline:[],sourceErrors:[],loadingCount:0};
 
 
 // AUTOCOMPLETAR v1.6: nomes confirmados pelo catálogo externo + atalhos locais.
@@ -34,6 +34,7 @@ const suggestBox=$('#searchSuggestions');
 let suggestTimer, suggestSerial=0,suggestCallbackId=0,suggestHighlighted=-1;
 const suggestPending=new Map(),suggestCache=new Map();
 let suggestCandidates=[];
+let manualSearchMode=false;
 const recentArtists=()=>readStore('acl_music_recent_artist_searches',[]).filter(x=>typeof x==='string').slice(0,10);
 function persistArtistSearch(name){
  if(!name || state.searchKind!=='artist')return;
@@ -88,38 +89,55 @@ function closeSuggestions(){
  suggestBox.hidden=true;$('#searchInput').setAttribute('aria-expanded','false');
  suggestHighlighted=-1;$('#searchInput').removeAttribute('aria-activedescendant');
 }
-function paintSuggestions(query,remote=[],loading=false){
- if(!query || document.activeElement!==$('#searchInput') && suggestBox.hidden) return;
+function paintSuggestions(query,remote={artists:[],songs:[]},loading=false){
+ if(!query || (document.activeElement!==$('#searchInput') && suggestBox.hidden)) return;
  const q=query.trim();if(q.length<2){closeSuggestions();return;}
  const kind=state.searchKind;
+ const artistRows=Array.isArray(remote.artists)?remote.artists:[];
+ const songRows=Array.isArray(remote.songs)?remote.songs:[];
  const map=new Map();
- const insert=(name,origin,artist='')=>{
+ const insert=(name,origin,itemKind,artist='',track=null)=>{
   if(!name||name.length>140)return;
   const score=artistRelevance(q,name);
   if(score<20)return;
-  const key=normalizeArtistName(name)+'|'+kind;
+  const key=artistKey(name)+'|'+itemKind+(itemKind==='song'?'|'+artistKey(artist):'');
   const existing=map.get(key);
-  const candidate={name,kind,origin,artist,score:score+(origin==='catalog'?4:origin==='recent'?3:0)};
-  if(!existing||candidate.score>existing.score)map.set(key,candidate);
+  const candidate={name,kind:itemKind,origin,artist,track,trackId:String(track?.trackId||''),score:score+(origin==='catalog'?4:origin==='recent'?3:0)};
+  if(!existing||candidate.score>existing.score||(!existing.track&&track))map.set(key,candidate);
  };
- if(kind==='artist'){
-  knownArtistHints.forEach(name=>insert(name,'hint'));
-  recentArtists().forEach(name=>insert(name,'recent'));
-  remote.forEach(x=>insert(String(x.artistName||x.name||''),'catalog'));
- }else{
-  remote.forEach(x=>insert(String(x.trackName||x.name||''),'catalog',String(x.artistName||'')));
+ if(kind!=='song'){
+  knownArtistHints.forEach(name=>insert(name,'hint','artist'));
+  recentArtists().forEach(name=>insert(name,'recent','artist'));
+  artistRows.forEach(x=>insert(String(x.artistName||x.name||''),'catalog','artist'));
  }
- suggestCandidates=[...map.values()].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,'pt-BR')).slice(0,7);
- const items=suggestCandidates.map((o,i)=>{
-   const isCorrection=artistKey(o.name)!==artistKey(q)&&!artistKey(o.name).startsWith(artistKey(q));
-   const subtitle=o.kind==='song'?'Música · '+(o.artist||'Artista'):
-     o.origin==='catalog'?'Artista · catálogo musical':o.origin==='recent'?'Pesquisa recente':isCorrection?'Sugestão de grafia':'Artista sugerido';
-   return `<button type="button" class="suggestion-item" role="option" id="suggest-${i}" aria-selected="false" data-suggest="${i}" tabindex="-1"><span class="suggestion-symbol" aria-hidden="true">${o.kind==='song'?'♫':'◉'}</span><span class="suggestion-copy"><strong>${safe(o.name)}</strong><small>${safe(subtitle)}</small></span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>`;
- }).join('');
- const fallback=`<button type="button" class="suggestion-item suggestion-exact" data-suggest-exact="1" role="option" tabindex="-1"><span class="suggestion-symbol">⌕</span><span class="suggestion-copy"><strong>Buscar por “${safe(q)}”</strong><small>Pesquisar exatamente o que foi digitado</small></span><span class="suggestion-arrow">↵</span></button>`;
- suggestBox.innerHTML=`<div class="suggestion-top"><span>SUGESTÕES DE BUSCA</span><span class="suggestion-meta">${loading?'Consultando catálogo…':remote.length?'Nomes do catálogo':'Conforme você digita'}</span></div>${items}${fallback}`;
+ if(kind!=='artist'){
+  songRows.forEach(x=>{
+   if(x.kind!=='song'||!x.artistName||!x.trackName)return;
+   insert(String(x.trackName),'catalog','song',String(x.artistName),x);
+  });
+ }
+ const previouslyHighlighted=suggestHighlighted>=0?suggestCandidates[suggestHighlighted]:null;
+ const sorted=[...map.values()].sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,'pt-BR'));
+ const artists=sorted.filter(x=>x.kind==='artist').slice(0,kind==='all'?3:7);
+ const songs=sorted.filter(x=>x.kind==='song').slice(0,kind==='all'?5:7);
+ suggestCandidates=[...artists,...songs];
+ let items='';
+ let lastKind='';
+ suggestCandidates.forEach((o,i)=>{
+  if(o.kind!==lastKind){lastKind=o.kind;items+=`<div class="suggestion-group" aria-hidden="true">${o.kind==='song'?'MÚSICAS':'ARTISTAS'}</div>`;}
+  const isCorrection=artistKey(o.name)!==artistKey(q)&&!artistKey(o.name).startsWith(artistKey(q));
+  const subtitle=o.kind==='song'?o.artist:
+   o.origin==='catalog'?'Artista · catálogo musical':o.origin==='recent'?'Pesquisa recente':isCorrection?'Sugestão de grafia':'Artista sugerido';
+  items+=`<button type="button" class="suggestion-item" role="option" id="suggest-${i}" aria-selected="false" data-suggest="${i}" tabindex="-1"><span class="suggestion-symbol" aria-hidden="true">${o.kind==='song'?'♫':'◉'}</span><span class="suggestion-copy"><strong>${safe(o.name)}</strong><small>${safe(subtitle)}</small></span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>`;
+ });
+ const fallback=`<button type="button" class="suggestion-item suggestion-exact" data-suggest-exact="1" role="option" tabindex="-1"><span class="suggestion-symbol">⌕</span><span class="suggestion-copy"><strong>Buscar por “${safe(q)}”</strong><small>Pesquisar artistas e músicas</small></span><span class="suggestion-arrow">↵</span></button>`;
+ const hasRemote=artistRows.length+songRows.length>0;
+ const selectedKey=previouslyHighlighted?previouslyHighlighted.kind+'|'+previouslyHighlighted.name+'|'+previouslyHighlighted.artist:null;
+ suggestBox.innerHTML=`<div class="suggestion-top"><span>SUGESTÕES DE BUSCA</span><span class="suggestion-meta">${loading?'Consultando catálogo…':hasRemote?'Artistas e músicas':'Conforme você digita'}</span></div>${items}${fallback}`;
  suggestBox.hidden=false;$('#searchInput').setAttribute('aria-expanded','true');
- suggestHighlighted=-1;$('#searchInput').removeAttribute('aria-activedescendant');
+ suggestHighlighted=selectedKey?suggestCandidates.findIndex(x=>x.kind+'|'+x.name+'|'+x.artist===selectedKey):-1;
+ if(suggestHighlighted<0)$('#searchInput').removeAttribute('aria-activedescendant');
+ else $('#searchInput').setAttribute('aria-activedescendant','suggest-'+suggestHighlighted);
 }
 window.__aclfutureSuggestResponse=function(reqId,json){
  const waiter=suggestPending.get(reqId);if(!waiter)return;
@@ -153,13 +171,21 @@ function requestAutocomplete(query,kind){
 function onSearchTyping(value){
  clearTimeout(suggestTimer);const token=++suggestSerial;
  const query=value.trim();if(query.length<2){closeSuggestions();return;}
- paintSuggestions(query,[],true);
- suggestTimer=setTimeout(async()=>{
-  try{
-   const rows=await requestAutocomplete(query,state.searchKind);
-   if(token!==suggestSerial||$('#searchInput').value.trim()!==query)return;
-   paintSuggestions(query,rows,false);
-  }catch(e){if(token===suggestSerial)paintSuggestions(query,[],false)}
+ const results={artists:[],songs:[]};
+ paintSuggestions(query,results,true);
+ suggestTimer=setTimeout(()=>{
+  const kinds=state.searchKind==='all'?['artist','song']:[state.searchKind];
+  let remaining=kinds.length;
+  for(const kind of kinds){
+   requestAutocomplete(query,kind).then(rows=>{
+    if(token!==suggestSerial||$('#searchInput').value.trim()!==query)return;
+    results[kind==='song'?'songs':'artists']=rows;
+   }).catch(()=>{}).finally(()=>{
+    if(token!==suggestSerial||$('#searchInput').value.trim()!==query)return;
+    remaining--;
+    paintSuggestions(query,results,remaining>0);
+   });
+  }
  },280);
 }
 function acceptSuggestion(i){
@@ -167,13 +193,13 @@ function acceptSuggestion(i){
  $('#searchInput').value=chosen.name;
  state.searchKind=chosen.kind;$('#searchKind').value=chosen.kind;
  ++suggestSerial;clearTimeout(suggestTimer);closeSuggestions();
- persistArtistSearch(chosen.name);runSearch(chosen.name);
+ persistArtistSearch(chosen.name);runSearch(chosen.name,chosen.kind==='song'?chosen:null);
 }
 function searchWithInput(){
  const query=$('#searchInput').value.trim();
  if(suggestHighlighted>=0){acceptSuggestion(suggestHighlighted);return;}
  if(state.searchKind==='artist'&&query.length>=5){
-  const matches=suggestCandidates.filter(x=>x.score>=100);
+  const matches=suggestCandidates.filter(x=>x.kind==='artist'&&x.score>=100);
   if(matches.length===1){acceptSuggestion(suggestCandidates.indexOf(matches[0]));return;}
  }
  ++suggestSerial;clearTimeout(suggestTimer);closeSuggestions();
@@ -292,7 +318,7 @@ function fetchGlobalCatalog(query,kind){
    try{window.ACLCatalog.search(query.slice(0,120),id,kind)}catch(e){clearTimeout(timer);pendingCatalog.delete(id);reject(e)}
   });
  }
- const p=new URLSearchParams({term:query,country:'BR',media:'music',entity:'song',limit:'100',attribute:kind==='artist'?'artistTerm':'songTerm'});
+ const p=new URLSearchParams({term:query,country:'BR',media:'music',entity:'song',limit:'100'});if(kind==='artist')p.set('attribute','artistTerm');else if(kind==='song')p.set('attribute','songTerm');
  return apiFetch('https://itunes.apple.com/search?'+p,14000);
 }
 async function fromCatalog(query,page){
@@ -303,7 +329,21 @@ async function fromCatalog(query,page){
  const input=Array.isArray(r.results)?r.results:[];
  let items=input.map(normalizeCatalogTrack).filter(Boolean);
  if(state.searchKind==='artist')items=items.filter(x=>sameCreditedArtist(x.artist,query));
+ const selected=state.searchKind==='song'?state.preferredSong:null;
+ if(selected?.track){const chosenTrack=normalizeCatalogTrack(selected.track);if(chosenTrack&&!items.some(t=>t.id===chosenTrack.id))items.unshift(chosenTrack);}
  const seen=new Set();items=items.filter(t=>{if(seen.has(t.id))return false;seen.add(t.id);return true});
+ if(state.searchKind!=='artist'){
+  const score=t=>{
+   const title=normalizeArtistName(t.title), q=normalizeArtistName(query);
+   const titleScore=title===q?140:title.startsWith(q)?100:title.includes(q)?60:0;
+   const artistScore=normalizeArtistName(t.artist)===q?90:0;
+   const chosenScore=selected?.trackId&&t.id==='cat:'+selected.trackId?400:0;
+   const creditedScore=selected?.artist&&artistKey(t.artist)===artistKey(selected.artist)?140:0;
+   return titleScore+artistScore+chosenScore+creditedScore;
+  };
+  items.sort((a,b)=>score(b)-score(a)||a.title.localeCompare(b.title,'pt-BR')||a.artist.localeCompare(b.artist,'pt-BR'));
+  return {items,hasMore:false};
+ }
  items.sort((a,b)=>{
   const first=(a.album||'').localeCompare((b.album||''),'pt-BR');
   return first||a.title.localeCompare(b.title,'pt-BR');
@@ -415,11 +455,11 @@ function contentForView(){if(state.view==='favoritos')return Object.values(state
 function lookup(id){return state.offline.find(x=>x.id===id)||state.tracks.find(x=>x.id===id)||state.queue.find(x=>x.id===id)||state.favorites[id]||null}
 function updateHead(){const changes={inicio:['MÚSICAS ORIGINAIS','Encontre a gravação certa','Pesquise os seus artistas e reproduza diretamente no ACLFUTURE Music.'],buscar:['BUSCA MUNDIAL',state.query?'Resultados para “'+state.query+'”':'O que vamos ouvir?',state.source==='youtube'?'Busque faixas e ouça com o reprodutor integrado. A disponibilidade varia por gravação.':state.source==='catalog'?'Faixas originais identificadas por álbum e artista. Toque para reproduzir aqui.':'Músicas independentes em catálogos de uso livre.'],favoritos:['SUA COLEÇÃO','Suas favoritas','Faixas que você marcou com o coração.'],offline:['SEMPRE COM VOCÊ','Disponíveis offline','Músicas guardadas neste dispositivo.'],playlists:['ORGANIZE SEU SOM','Minhas playlists','Monte seleções para cada momento.'],'playlist-detail':['SUAS PLAYLISTS',state.playlists[state.playlistId]?.name||'Playlist','Músicas escolhidas por você.']}[state.view]||[];$('#trackKicker').textContent=changes[0]||'';$('#tracksTitle').textContent=changes[1]||'';$('#trackSubtitle').textContent=changes[2]||'';$('#hero').hidden=state.view!=='inicio';$('#genresSection').hidden=state.view!=='inicio';$('.track-tools').hidden=['favoritos','offline','playlists','playlist-detail'].includes(state.view);$('.table-head').hidden=state.view==='playlists';$('#searchKind').hidden=!['youtube','catalog'].includes(state.source)||!['inicio','buscar'].includes(state.view);$('#catalogNotice').hidden=!['youtube','catalog'].includes(state.source)||!['inicio','buscar'].includes(state.view);$('#loadMore').hidden=!['buscar','inicio'].includes(state.view)||state.loading||!state.hasMore;$$('[data-view]').forEach(el=>el.classList.toggle('selected',el.dataset.view===state.view))}
 function renderList(){updateHead();const el=$('#trackList');if(state.view==='playlists'){el.innerHTML=`<div class="playlist-grid"><button class="playlist-card" id="playlistNewCard"><div class="playlist-card-icon">＋</div><div><strong>Criar playlist</strong><p>Nova coleção de músicas</p></div></button>${Object.entries(state.playlists).map(([id,p])=>`<button class="playlist-card" data-playlist="${safe(id)}"><div class="playlist-card-icon">♫</div><div><strong>${safe(p.name)}</strong><p>${p.ids.length} músicas</p></div></button>`).join('')}</div>`;$('#playlistNewCard')?.addEventListener('click',createPlaylist);return}
- const tracks=contentForView();if(!tracks.length){const reason=state.loading?'Carregando músicas...':state.view==='offline'?'Suas músicas baixadas e importadas aparecerão aqui.':state.view==='favoritos'?'Toque no coração de uma música para encontrá-la aqui.':state.view==='playlist-detail'?'Adicione músicas pelo menu ⋮ das faixas.':state.sourceErrors.length?'Não foi possível carregar os catálogos: '+state.sourceErrors.join(', ')+'. Confira a conexão e tente outra fonte.':(state.source==='catalog'||state.source==='youtube')?(state.query?'Nenhuma gravação com esse artista ou título foi localizada. Experimente o modo Músicas ou busque pelo canal oficial no YouTube.':'Digite o nome de uma banda ou cantor para pesquisar gravações de todo o mundo.'):'Tente buscar outro artista, estilo ou palavra.';const action=state.view==='offline'?'<button data-import="1">Importar áudio do celular</button>':!['favoritos','playlist-detail'].includes(state.view)?'<button data-retry="1">Tentar buscar novamente</button>':'';el.innerHTML=`<div class="empty-state"><div class="empty-icon">♫</div><strong>${state.loading?'Buscando...':'Nenhuma música aqui por enquanto'}</strong><p>${safe(reason)}</p>${action}</div>`;return}
+ const tracks=contentForView();if(!tracks.length){const reason=state.loading?'Carregando músicas...':state.view==='offline'?'Suas músicas baixadas e importadas aparecerão aqui.':state.view==='favoritos'?'Toque no coração de uma música para encontrá-la aqui.':state.view==='playlist-detail'?'Adicione músicas pelo menu ⋮ das faixas.':state.sourceErrors.length?'Não foi possível carregar os catálogos: '+state.sourceErrors.join(', ')+'. Confira a conexão e tente outra fonte.':(state.source==='catalog'||state.source==='youtube')?(state.query?'Nenhuma gravação com esse artista ou título foi localizada. Experimente o modo Músicas ou busque pelo canal oficial no YouTube.':'Digite o nome de uma música, banda ou cantor para pesquisar gravações de todo o mundo.'):'Tente buscar outro artista, estilo ou palavra.';const action=state.view==='offline'?'<button data-import="1">Importar áudio do celular</button>':!['favoritos','playlist-detail'].includes(state.view)?'<button data-retry="1">Tentar buscar novamente</button>':'';el.innerHTML=`<div class="empty-state"><div class="empty-icon">♫</div><strong>${state.loading?'Buscando...':'Nenhuma música aqui por enquanto'}</strong><p>${safe(reason)}</p>${action}</div>`;return}
  el.innerHTML=tracks.map((t,i)=>row(t,i)).join('');if(state.sourceErrors.length&&['inicio','buscar'].includes(state.view))el.insertAdjacentHTML('beforeend',`<p class="error-text" style="font-size:10px;margin:10px 13px">Algumas fontes não responderam: ${safe(state.sourceErrors.join(', '))}. Os resultados disponíveis foram mantidos.</p>`);
 }
 function navigate(view){if(state.source==='local'&&view!=='offline'){state.source='catalog';$('#sourceSelect').value=state.source}state.view=view;state.playlistId=view!=='playlist-detail'?null:state.playlistId;$('#sidebar').classList.remove('open');$('#overlay').hidden=true;renderList();$('#main').querySelector('.main-body').scrollTop=0;if(view==='buscar')$('#searchInput').focus();if(view==='offline')refreshOffline().then(renderList);if(view==='inicio'&&!state.tracks.length)discover()}
-function runSearch(q){closeSuggestions();if(state.source==='local'){state.source='catalog';$('#sourceSelect').value=state.source}state.query=(q||'').trim().slice(0,200);state.view='buscar';$('#searchInput').value=state.query;renderList();$('#pageBody').scrollTop=0;discover()}
+function runSearch(q,selectedSong=null){state.preferredSong=selectedSong;closeSuggestions();if(state.source==='local'){state.source='catalog';$('#sourceSelect').value=state.source}state.query=(q||'').trim().slice(0,200);state.view='buscar';$('#searchInput').value=state.query;renderList();$('#pageBody').scrollTop=0;discover()}
 
 function favorite(id){const t=lookup(id);if(!t)return;const was=!!state.favorites[id];if(was)delete state.favorites[id];else {const {blob,...metadata}=t;state.favorites[id]=metadata;}writeStore('acl_music_favorites',state.favorites);toast(was?'Removida das favoritas':'Adicionada às favoritas');renderList();updatePlayer()}
 function trackQueue(){if(state.view==='offline'||state.view==='favoritos'||state.view==='playlist-detail')return contentForView();return state.tracks.length?state.tracks:state.queue}
@@ -636,7 +676,7 @@ document.addEventListener('click',async e=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();$('#sidebar').classList.remove('open');$('#overlay').hidden=true};if((e.key==='Enter'||e.key===' ')&&e.target.matches('.track-row[data-play]')){e.preventDefault();playTrack(e.target.dataset.play)}if(e.code==='Space'&&!['INPUT','TEXTAREA','BUTTON','SELECT'].includes(document.activeElement?.tagName)){e.preventDefault();togglePlay()}});
 $('#searchForm').addEventListener('submit',e=>{e.preventDefault();searchWithInput()});
-$('#searchInput').addEventListener('input',e=>onSearchTyping(e.target.value));
+$('#searchInput').addEventListener('input',e=>{if(!manualSearchMode&&state.searchKind!=='all'){state.searchKind='all';$('#searchKind').value='all';}onSearchTyping(e.target.value);});
 $('#searchInput').addEventListener('focus',e=>{if(e.target.value.trim().length>=2)onSearchTyping(e.target.value)});
 $('#searchInput').addEventListener('keydown',e=>{
  if(e.key==='ArrowDown'||e.key==='ArrowUp'){
@@ -653,7 +693,7 @@ suggestBox.addEventListener('click',e=>{
 document.addEventListener('pointerdown',e=>{if(!e.target.closest('#searchForm')){++suggestSerial;clearTimeout(suggestTimer);closeSuggestions()}});
 
 $('#sourceSelect').addEventListener('change',e=>{state.source=e.target.value;$('#catalogNotice').textContent=state.source==='youtube'?'Busca do YouTube Music pelo player interno. Se o áudio não carregar, tente outra gravação.':'Busque gravações originais de artistas e álbuns. A reprodução acontece dentro do ACLFUTURE Music.';if(state.source==='local'){state.view='offline';renderList();return}state.view='buscar';state.tracks=[];renderList();discover()});
-$('#searchKind').addEventListener('change',e=>{state.searchKind=e.target.value;++suggestSerial;closeSuggestions();state.view='buscar';state.tracks=[];renderList();discover();const q=$('#searchInput').value.trim();if(q.length>=2){$('#searchInput').focus();onSearchTyping(q);}});
+$('#searchKind').addEventListener('change',e=>{manualSearchMode=e.target.value!=='all';state.searchKind=e.target.value;++suggestSerial;closeSuggestions();state.view='buscar';state.tracks=[];renderList();discover();const q=$('#searchInput').value.trim();if(q.length>=2){$('#searchInput').focus();onSearchTyping(q);}});
 $('#heroExplore').addEventListener('click',()=>navigate('buscar'));
 $('#heroOffline').addEventListener('click',()=>navigate('offline'));
 $('#loadMore').addEventListener('click',()=>discover({append:true}));
