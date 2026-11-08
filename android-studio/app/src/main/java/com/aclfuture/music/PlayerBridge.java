@@ -69,7 +69,7 @@ final class PlayerBridge {
                 emitState("state");
             }
             @Override public void onPlayerError(PlaybackException error){
-                android.util.Log.e("ACL_Music_Player","ExoPlayer: " + error.errorCodeName, error);
+                android.util.Log.e("ACL_Music_Player","ExoPlayer: " + error.getErrorCodeName(), error);
                 emit("error",activeId,0,0,false,false);
             }
         });
