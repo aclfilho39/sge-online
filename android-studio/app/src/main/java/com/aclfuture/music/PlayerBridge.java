@@ -33,6 +33,7 @@ import androidx.media3.exoplayer.source.DefaultMediaSourceFactory;
 import org.json.JSONObject;
 
 /** ACLFUTURE Android-native player. ExoPlayer plays stream URLs inside this app. */
+@androidx.media3.common.util.UnstableApi
 final class PlayerBridge {
     private final Activity activity;
     private final WebView interfaceView;
