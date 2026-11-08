@@ -124,12 +124,12 @@ final class PlayerBridge {
             LinearLayout root=new LinearLayout(activity);root.setOrientation(LinearLayout.VERTICAL);
             root.setPadding(dp(13),dp(13),dp(13),dp(15));
             GradientDrawable backdrop=new GradientDrawable(GradientDrawable.Orientation.TL_BR,
-                    new int[]{Color.rgb(31,15,59),Color.rgb(14,12,34)});
+                    new int[]{Color.rgb(20,35,51),Color.rgb(8,15,25)});
             backdrop.setCornerRadius(dp(21));root.setBackground(backdrop);
             LinearLayout head=new LinearLayout(activity);head.setOrientation(LinearLayout.HORIZONTAL);
             head.setGravity(Gravity.CENTER_VERTICAL);
             TextView label=new TextView(activity);
-            label.setText("▶  ACLFUTURE  •  REPRODUÇÃO INTERNA");label.setTextColor(Color.rgb(255,197,221));
+            label.setText("▶  ACLFUTURE  •  REPRODUÇÃO INTERNA");label.setTextColor(Color.rgb(241,198,112));
             label.setTextSize(12f);label.setTypeface(Typeface.DEFAULT,Typeface.BOLD);
             head.addView(label,new LinearLayout.LayoutParams(0,dp(48),1));
             Button close=new Button(activity);close.setText("✕");close.setTextColor(Color.WHITE);

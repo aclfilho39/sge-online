@@ -3,14 +3,14 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-  <meta name="theme-color" content="#0b1013">
+  <meta name="theme-color" content="#090f19">
   <meta name="description" content="ACLFUTURE Music: busque gravações originais de bandas e cantores, salve favoritos e ouça suas músicas locais offline.">
   <meta name="color-scheme" content="dark">
   <link rel="icon" type="image/png" href="assets/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
   <link rel="manifest" href="manifest.webmanifest">
   <link rel="stylesheet" href="styles.css">
-  <title>ACLFUTURE Music — Sua música, sua liberdade</title>
+  <title>ACLFUTURE Music — Encontre seu som</title>
 </head>
 <body>
 <div id="app" class="app-shell">
@@ -35,7 +35,7 @@
     <div class="side-bottom">
       <div class="legal-note"><span class="pulse-dot"></span><span>Sem anúncios próprios.<br>Reprodução integrada · offline local.</span></div>
       <button class="install-side" id="installSide">↓ &nbsp; Instalar no Android</button>
-      <div class="side-caption">ACLFUTURE MUSIC · versão 1.5 BETA</div>
+      <div class="side-caption">ACLFUTURE MUSIC · versão 1.6 BETA</div>
     </div>
   </aside>
 
@@ -44,29 +44,30 @@
       <div class="mobile-brand"><button class="mobile-menu" id="menuBtn" aria-label="Abrir menu">☰</button><img class="mobile-brand-logo" src="assets/brand-mark.png" alt="Símbolo oficial ACLFUTURE"><span>ACLFUTURE <b>MUSIC</b></span></div>
       <form class="searchbar" id="searchForm" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
-        <input id="searchInput" type="search" autocomplete="off" placeholder="Digite o nome da banda ou cantor..." aria-label="Pesquisar músicas">
-        <span class="search-shortcut">↵</span>
+        <input id="searchInput" type="search" autocomplete="off" autocapitalize="off" spellcheck="false" enterkeyhint="search" placeholder="Artista, banda ou música..." aria-label="Buscar artista, banda ou música" role="combobox" aria-haspopup="listbox" aria-controls="searchSuggestions" aria-expanded="false" aria-autocomplete="list">
+        <span class="search-shortcut" aria-hidden="true">↵</span>
+        <div id="searchSuggestions" class="suggestions" role="listbox" aria-label="Sugestões de artistas e músicas" hidden></div>
       </form>
       <div class="top-actions"><span class="status-online" id="netStatus"><span></span> ONLINE</span><button class="icon-action" id="installBtn" title="Instalar" aria-label="Instalar aplicativo">↓</button><button class="user-avatar" id="helpBtn" aria-label="Sobre o aplicativo">AC</button></div>
     </header>
 
     <div class="main-body" id="pageBody">
       <section class="hero" id="hero">
-        <div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span> MÚSICAS ORIGINAIS • PLAYER INTEGRADO</div><h1>Sua música.<br><em>Seu momento.</em></h1><p>De rock nacional a pop, metal, samba ou jazz. Descubra a gravação original e toque sem sair do ACLFUTURE Music.</p><div class="hero-actions"><button class="btn-primary" id="heroExplore"><span>▶</span> Encontrar uma música</button><button class="btn-outline" id="heroOffline">↓ &nbsp; Minha biblioteca offline</button></div></div>
-        <div class="hero-art" aria-hidden="true"><div class="vinyl-ring ring1"></div><div class="vinyl-ring ring2"></div><div class="vinyl-ring ring3"></div><div class="vinyl-core"><div class="music-glyph">♫</div></div><div class="glow-one"></div></div>
+        <div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span> ACLFUTURE MUSIC · SEU ESPAÇO</div><h1>O som que você procura.<br><em>Do seu jeito.</em></h1><p>Encontre o artista certo, explore músicas e ouça tudo o que estiver disponível sem sair daqui.</p><div class="hero-actions"><button class="btn-primary" id="heroExplore"><span>▶</span> Encontrar uma música</button><button class="btn-outline" id="heroOffline">↓ &nbsp; Minha biblioteca offline</button></div></div>
+        <div class="hero-art" aria-hidden="true"><div class="signal-emblem"><img src="assets/brand-mark.png" alt=""></div><div class="signal-bars"><i style="--b:28"></i><i style="--b:49"></i><i style="--b:75"></i><i style="--b:96"></i><i style="--b:62"></i><i style="--b:36"></i><i style="--b:82"></i><i style="--b:56"></i><i style="--b:92"></i><i style="--b:70"></i><i style="--b:46"></i><i style="--b:27"></i><i style="--b:57"></i><i style="--b:84"></i><i style="--b:42"></i></div></div>
       </section>
 
-      <section class="genres-section" id="genresSection"><div class="section-heading"><div><div class="section-kicker">EXEMPLOS DE BUSCA</div><h2>Qual artista você quer ouvir?</h2></div><span class="muted-sm">Toque para pesquisar</span></div><div class="genre-grid">
-        <button class="genre" data-genre="Taylor Swift" style="--genre-a:#5a2b96;--genre-b:#c149ac"><span class="genre-art">♫</span><strong>Taylor Swift</strong><small>Pop</small></button>
-        <button class="genre" data-genre="Iron Maiden" style="--genre-a:#844124;--genre-b:#cc7044"><span class="genre-art">ϟ</span><strong>Iron Maiden</strong><small>Heavy metal</small></button>
-        <button class="genre" data-genre="Daft Punk" style="--genre-a:#064d65;--genre-b:#00a7ad"><span class="genre-art">◈</span><strong>Daft Punk</strong><small>Eletrônica</small></button>
-        <button class="genre" data-genre="Miles Davis" style="--genre-a:#573b12;--genre-b:#c39b40"><span class="genre-art">♬</span><strong>Miles Davis</strong><small>Jazz</small></button>
-        <button class="genre" data-genre="Ludovico Einaudi" style="--genre-a:#355143;--genre-b:#6cac83"><span class="genre-art">♩</span><strong>Ludovico Einaudi</strong><small>Instrumental</small></button>
-        <button class="genre" data-genre="Racionais MC&#39;s" style="--genre-a:#4f2747;--genre-b:#ab5c87"><span class="genre-art">●</span><strong>Racionais MC’s</strong><small>Rap nacional</small></button>
+      <section class="genres-section" id="genresSection"><div class="section-heading"><div><div class="section-kicker">EXPLORE AGORA</div><h2>Comece pelo seu artista</h2></div><span class="muted-sm">Deslize e escolha</span></div><div class="genre-grid">
+        <button class="genre" data-genre="Engenheiros do Hawaii"><span class="genre-art">♫</span><strong>Engenheiros do Hawaii</strong><small>Rock brasileiro</small></button>
+        <button class="genre" data-genre="Guns N' Roses"><span class="genre-art">ϟ</span><strong>Guns N' Roses</strong><small>Rock</small></button>
+        <button class="genre" data-genre="Iron Maiden"><span class="genre-art">◈</span><strong>Iron Maiden</strong><small>Heavy metal</small></button>
+        <button class="genre" data-genre="Queen"><span class="genre-art">♬</span><strong>Queen</strong><small>Rock clássico</small></button>
+        <button class="genre" data-genre="Taylor Swift"><span class="genre-art">♩</span><strong>Taylor Swift</strong><small>Pop</small></button>
+        <button class="genre" data-genre="Racionais MC&#39;s"><span class="genre-art">●</span><strong>Racionais MC’s</strong><small>Rap nacional</small></button>
       </div></section>
 
       <section class="tracks-section"><div class="section-heading track-heading"><div><div class="section-kicker" id="trackKicker">SELEÇÃO DO DIA</div><h2 id="tracksTitle">Descubra músicas</h2><p id="trackSubtitle" class="section-subtitle">Busque artistas, álbuns e faixas de diferentes países.</p></div><div class="track-tools"><select id="searchKind" aria-label="Tipo de pesquisa"><option value="artist">Buscar artista</option><option value="song">Buscar música</option></select><select id="sourceSelect" aria-label="Escolher origem das músicas"><option value="catalog" selected>Artistas originais</option><option value="youtube">YouTube Music</option><option value="all">Músicas livres (todas)</option><option value="audius">Audius</option><option value="openverse">Openverse</option><option value="ftu">Free To Use</option><option value="local">Minha coleção</option></select><button id="shuffleAll" class="text-action">⇄ Aleatório</button><button id="youtubeSearch" class="text-action" title="Buscar no YouTube Music dentro do app">YouTube Music</button></div></div>
-      <p class="catalog-disclaimer" id="catalogNotice">Busca global de gravações lançadas comercialmente, com artistas e capas corretos. Toque em uma faixa para reproduzir no próprio ACLFUTURE Music. A disponibilidade do áudio integral depende do serviço; downloads offline continuam limitados às fontes autorizadas.</p>
+      <p class="catalog-disclaimer" id="catalogNotice"><span class="notice-spark">✦</span> Artistas e gravações originais no catálogo mundial. A reprodução integral depende da disponibilidade na fonte; o aplicativo permanece aberto.</p>
       <div class="table-head"><span></span><span>TÍTULO / ARTISTA</span><span class="hide-phone">ORIGEM</span><span class="hide-phone">DURAÇÃO</span><span></span></div>
       <div id="trackList" class="track-list" aria-live="polite"><div class="list-loading"><div class="loading-orb"></div> Buscando músicas disponíveis...</div></div>
       <div class="load-more-wrap"><button id="loadMore" class="btn-more" hidden>Carregar mais músicas <span>↓</span></button></div>

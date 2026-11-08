@@ -28,6 +28,7 @@ final class CatalogBridge {
     private final WebView web;
     private final ExecutorService pool = Executors.newFixedThreadPool(2);
     private final AtomicInteger latestSearch = new AtomicInteger(0);
+    private final AtomicInteger latestSuggest = new AtomicInteger(0);
     private static final int MAX_RESPONSE_BYTES = 2_000_000;
 
     CatalogBridge(Activity activity, WebView web) {
@@ -61,10 +62,51 @@ final class CatalogBridge {
         });
     }
 
+    @JavascriptInterface
+    public void suggest(String searchText, int reqId, String kind) {
+        final String q=searchText==null?"":searchText.trim();
+        if(reqId<=0||q.length()<2||q.length()>120||!("artist".equals(kind)||"song".equals(kind))){
+            answerSuggestion(reqId,"{\"results\":[]}");return;
+        }
+        latestSuggest.set(reqId);
+        pool.execute(() -> {
+            if(reqId!=latestSuggest.get())return;
+            try {
+                String response=fetchSuggestions(q,kind,"BR");
+                JSONObject parsed=new JSONObject(response);
+                if(parsed.optJSONArray("results")==null)throw new IllegalStateException("Sugestões inválidas");
+                if(parsed.optJSONArray("results").length()==0 && reqId==latestSuggest.get())
+                    response=fetchSuggestions(q,kind,"US");
+                if(reqId==latestSuggest.get())answerSuggestion(reqId,response);
+            }catch(Exception e){
+                if(reqId==latestSuggest.get())answerSuggestion(reqId,"{\"results\":[]}");
+            }
+        });
+    }
+
+    private String fetchSuggestions(String query,String kind,String country) throws Exception {
+        String endpoint="https://itunes.apple.com/search?media=music&entity="
+            + ("song".equals(kind)?"song":"musicArtist")+"&country="+country
+            +"&limit=40&term="+URLEncoder.encode(query,"UTF-8");
+        return fetchUrl(endpoint);
+    }
+
+    private void answerSuggestion(int reqId,String json){
+        activity.runOnUiThread(() -> {
+            if(web.getParent()==null)return;
+            web.evaluateJavascript("window.__aclfutureSuggestResponse && window.__aclfutureSuggestResponse("
+                +reqId+","+JSONObject.quote(json)+");",null);
+        });
+    }
+
     private String fetchCatalog(String query, String kind, String country) throws Exception {
         String endpoint = "https://itunes.apple.com/search?media=music&entity=song&country=" + country
             + "&limit=100&attribute=" + ("artist".equals(kind) ? "artistTerm" : "songTerm")
             + "&term=" + URLEncoder.encode(query, "UTF-8");
+        return fetchUrl(endpoint);
+    }
+
+    private String fetchUrl(String endpoint) throws Exception {
         HttpURLConnection conn = (HttpURLConnection) new URL(endpoint).openConnection();
         try {
             conn.setInstanceFollowRedirects(true);
@@ -72,7 +114,7 @@ final class CatalogBridge {
             conn.setReadTimeout(12000);
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("User-Agent", "ACLFUTURE-Music/1.3 Android");
+            conn.setRequestProperty("User-Agent", "ACLFUTURE-Music/1.6 Android");
             if(conn.getResponseCode() != 200) throw new java.io.IOException("Catálogo HTTP " + conn.getResponseCode());
             String type=conn.getContentType();
             if(type!=null && !type.contains("json") && !type.contains("text/javascript"))

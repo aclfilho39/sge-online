@@ -1,4 +1,4 @@
-name: ACLFUTURE Music 1.5 — APK com player interno
+name: ACLFUTURE Music 1.6 — APK com player interno
 on:
   workflow_dispatch:
   push:
@@ -50,6 +50,20 @@ jobs:
               except Exception as e:
                   print('FALHA CATÁLOGO:',artist,str(e));raise
           PY
+      - name: Testar sugestões de artistas com catálogo real
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import json,urllib.request,urllib.parse
+          for term in ['engenheiro','Guns N Roses','Queen','Iron']:
+              p=urllib.parse.urlencode(dict(term=term,media='music',entity='musicArtist',country='BR',limit='40'))
+              with urllib.request.urlopen('https://itunes.apple.com/search?'+p,timeout=18) as r:
+                  records=json.load(r).get('results',[])
+              names=[x.get('artistName','') for x in records]
+              print('SUGESTOES:',term,'quantidade:',len(names),'exemplos:',names[:7])
+          PY
+      - name: Testar JavaScript sem erro de sintaxe
+        run: node --check android-studio/app/src/main/assets/www/app.js
       - name: Testar busca e extração de áudio real (não bloqueante)
         working-directory: android-studio
         continue-on-error: true
@@ -57,17 +71,17 @@ jobs:
       - name: Publicar artefato APK
         uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-1.5-APK
+          name: ACLFUTURE-Music-Android-1.6-APK
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK para download via navegador Android
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-5-player-interno'
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-6-autocomplete-premium'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.5_PLAYER_INTERNO.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.6_BUSCA_INTELIGENTE.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f release/ACLFUTURE_Music_1.5_PLAYER_INTERNO.apk
+          git add -f release/ACLFUTURE_Music_1.6_BUSCA_INTELIGENTE.apk
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish ACLFUTURE Music 1.5 player interno APK [skip ci]'
-            git push origin HEAD:refs/heads/aclfuture-music-android-1-5-player-interno
+            git commit -m 'Publish ACLFUTURE Music 1.6 player interno APK [skip ci]'
+            git push origin HEAD:refs/heads/aclfuture-music-android-1-6-autocomplete-premium
           fi

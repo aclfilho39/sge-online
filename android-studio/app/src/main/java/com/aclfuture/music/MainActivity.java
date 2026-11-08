@@ -40,13 +40,13 @@ public final class MainActivity extends Activity {
 
     @Override public void onCreate(Bundle saved){
         super.onCreate(saved);
-        getWindow().setStatusBarColor(Color.rgb(15,10,34));
-        getWindow().setNavigationBarColor(Color.rgb(15,10,34));
+        getWindow().setStatusBarColor(Color.rgb(9,15,25));
+        getWindow().setNavigationBarColor(Color.rgb(9,15,25));
         setupWeb();
     }
     private void setupWeb(){
         web=new WebView(this);
-        web.setBackgroundColor(Color.rgb(11,9,27));
+        web.setBackgroundColor(Color.rgb(9,15,25));
         web.setOverScrollMode(WebView.OVER_SCROLL_NEVER);
         setContentView(web);
         WebSettings s=web.getSettings();
