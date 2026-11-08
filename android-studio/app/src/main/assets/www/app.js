@@ -13,6 +13,109 @@ const audio=$('#audio');let toastTimer,searchTimer,requestNumber=0,playRequest=0
 const state={view:'inicio',source:'catalog',query:'',searchKind:'all',page:1,hasMore:false,sourceHasMore:{},tracks:[],allResults:[],queue:[],current:null,idx:-1,shuffle:false,repeat:false,loading:false,favorites:readStore('acl_music_favorites',{}),playlists:readStore('acl_music_playlists',{}),playlistId:null,offline:[],sourceErrors:[],loadingCount:0};
 
 
+// ACLFUTURE v1.9: playlist queue, retry and native offline bridge.
+const offlineNativeWaiters=new Map();let offlineNativeReq=0;
+const downloadBatch={running:false,cancelled:false,pid:null,items:[]};
+const offlineBatches=readStore('acl_music_playlist_downloads',{});
+const noBatchText='Seu download em lote sera iniciado ao tocar no botao da playlist.';
+window.__aclfutureOfflineNativeEvent=function(raw){
+ let msg;try{msg=typeof raw==='string'?JSON.parse(raw):raw;}catch{return;}
+ const waiter=offlineNativeWaiters.get(msg.requestId);
+ if(!waiter)return;
+ if(msg.type==='progress'){
+  const line=$('#batchCurrent');if(line)line.textContent=msg.message+' ('+msg.progress+'%)';
+  if(waiter.progress)waiter.progress(msg.progress,msg.message);
+  return;
+ }
+ offlineNativeWaiters.delete(msg.requestId);clearTimeout(waiter.timer);
+ if(msg.type==='error')waiter.reject(Error(msg.message||'Download nao concluido'));
+ else waiter.resolve(msg);
+};
+function offlineCall(method,args=[],timeout=600000,progress=null){
+ if(!window.ACLNativeOffline?.[method])return Promise.reject(Error('Armazenamento Android nao disponivel'));
+ const id=++offlineNativeReq;
+ return new Promise((resolve,reject)=>{
+  const timer=setTimeout(()=>{offlineNativeWaiters.delete(id);reject(Error('Tempo limite de download'))},timeout);
+  offlineNativeWaiters.set(id,{resolve,reject,timer,progress});
+  try{window.ACLNativeOffline[method](...args,id)}catch(e){offlineNativeWaiters.delete(id);clearTimeout(timer);reject(e)}
+ });
+}
+async function nativeOfflineList(){
+ if(!window.ACLNativeOffline?.list)return [];
+ try{const r=await offlineCall('list',[],9000);return Array.isArray(r.items)?r.items:[]}
+ catch(e){console.warn('Biblioteca nativa:',e);return []}
+}
+function saveDownloadBatches(){writeStore('acl_music_playlist_downloads',offlineBatches)}
+function getPlaylistTracks(pid){const v=state.playlists[pid];return (v?.ids||[]).map(id=>lookup(id)||v.tracks?.find(t=>t.id===id)).filter(Boolean)}
+function playlistToolbarHtml(pid){
+ const p=state.playlists[pid];if(!p)return '';
+ const tracks=getPlaylistTracks(pid),total=tracks.length,offline=tracks.filter(t=>isSaved(t.id)).length;
+ const batch=offlineBatches[pid]||{},done=(batch.items||[]).filter(t=>t.status==='complete').length;
+ const errors=(batch.items||[]).filter(t=>t.status==='error').length;
+ const progress=batch.items?.length?`<div class="batch-progress"><strong>${done} de ${batch.items.length} salvas</strong><span>${errors} falharam</span><div class="batch-bar"><i style="width:${Math.min(100,Math.round(100*done/batch.items.length))}%"></i></div><small id="batchCurrent">${safe(batch.message||noBatchText)}</small></div>`:'';
+ return `<div class="playlist-detail-header"><div class="playlist-art">${tracks.length?cover(tracks[0],'big'):'&#9835;'}</div><div class="playlist-heading"><span>MINHA PLAYLIST</span><h3>${safe(p.name)}</h3><p>${total} musica(s) &middot; ${offline} offline</p></div></div><div class="playlist-actions"><button data-play-all="${safe(pid)}" ${!total?'disabled':''}>\u25b6 Tocar tudo</button><button data-download-playlist="${safe(pid)}" class="action-gold" ${!total?'disabled':''}>\u2193 Baixar playlist</button>${downloadBatch.running&&downloadBatch.pid===pid?'<button data-pause-download="1">Pausar fila</button>':''}${errors?`<button data-retry-download="${safe(pid)}">Tentar falhas</button>`:''}<button data-rename-playlist="${safe(pid)}">Renomear</button><button data-delete-playlist="${safe(pid)}">Excluir playlist</button></div>${progress}`;
+}
+function renderLibraryHome(el){
+ const playlists=Object.entries(state.playlists),likes=Object.keys(state.favorites).length;
+ el.innerHTML=`<section class="library-overview"><div class="library-intro"><div><span class="library-kicker">SUA COLECAO PESSOAL</span><h3>Biblioteca</h3><p>Crie playlists, escolha o que ouvir e guarde suas musicas no aparelho.</p></div><img class="by-tunico" src="assets/by-tunico.png" alt="By Tunico - placa original"></div><div class="library-shortcuts"><button data-view="favoritos"><b>&#9825;</b><strong>${likes} favoritas</strong><span>Musicas selecionadas</span></button><button data-view="offline"><b>&#8595;</b><strong>${state.offline.length} offline</strong><span>Salvas neste Android</span></button></div><div class="library-collection-title"><h4>Minhas playlists <span>${playlists.length}</span></h4><button data-create-playlist="1">+ Nova playlist</button></div><div class="playlist-grid"><button class="playlist-card playlist-new" data-create-playlist="1"><div class="playlist-card-icon">+</div><div><strong>Criar playlist</strong><p>Monte seu proprio album</p></div></button>${playlists.map(([id,v])=>{const items=getPlaylistTracks(id);const first=items[0];return `<button class="playlist-card" data-playlist="${safe(id)}"><div class="playlist-card-icon library-tile">${first?.image?`<img src="${safe(urlSafe(first.image))}" alt="" onerror="this.remove()">`:'&#9835;'}</div><div><strong>${safe(v.name)}</strong><p>${items.length} musica(s) &middot; ${items.filter(t=>isSaved(t.id)).length} offline</p></div><span class="library-open">&#8250;</span></button>`}).join('')}</div></section>`;
+}
+function quickAddToPlaylist(id){
+ const t=lookup(id);if(!t)return;
+ const choices=Object.entries(state.playlists).map(([pid,p])=>`<button class="modal-row" data-addto="${safe(pid)}" data-song="${safe(id)}"><span>${safe(p.name)}</span><small>+ Adicionar</small></button>`).join('');
+ modal('Adicionar a playlist',`<h3>${safe(t.title)}</h3><p class="modal-copy">${safe(t.artist)}</p>${choices||'<p class="modal-copy">Ainda nao existem playlists.</p>'}<button class="modal-row" data-create-add="${safe(id)}">+ Criar nova playlist</button>`);
+}
+function removeSongFromPlaylist(pid,id){
+ const p=state.playlists[pid];if(!p)return;
+ p.ids=p.ids.filter(x=>x!==id);p.tracks=(p.tracks||[]).filter(t=>t.id!==id);
+ writeStore('acl_music_playlists',state.playlists);toast('Musica removida da playlist');renderList();
+}
+function renamePlaylist(pid){const p=state.playlists[pid];if(!p)return;
+ modal('Renomear playlist',`<form id="renamePlaylistForm"><input id="renamePlaylistInput" class="modal-input" maxlength="60" required value="${safe(p.name)}"><button class="modal-btn">Salvar nome</button></form>`);
+ $('#renamePlaylistForm').onsubmit=e=>{e.preventDefault();const name=$('#renamePlaylistInput').value.trim();if(!name)return;p.name=name;writeStore('acl_music_playlists',state.playlists);closeModal();renderList()};
+}
+function deletePlaylist(pid){const p=state.playlists[pid];if(!p)return;
+ modal('Excluir playlist?',`<p class="modal-copy">Excluir <b>${safe(p.name)}</b> da biblioteca? Os audios offline nao serao apagados.</p><button class="modal-btn" data-confirm-delete-playlist="${safe(pid)}">Excluir playlist</button>`);
+}
+async function downloadNativeTrack(track){
+ if(isSaved(track.id))return true;
+ if(!window.ACLNativeOffline?.download)throw Error('Downloads de gravacoes requerem o aplicativo Android.');
+ const candidate=await findOriginalStream(track);
+ const u=urlSafe(candidate?.originUrl||'');if(!parseVideoId(u))throw Error('Nao foi identificada uma gravacao de audio para download.');
+ await offlineCall('download',[track.id,u,track.title||'',track.artist||'',track.image||'',track.source||'catalog'],360000);
+ await refreshOffline();return isSaved(track.id);
+}
+async function downloadAnyTrack(track,silent=false){
+ if(isSaved(track.id))return true;
+ try{
+  if(track.source==='catalog'||track.source==='youtube')return await downloadNativeTrack(track);
+  return await downloadTrack(track.id,silent);
+ }catch(e){if(!silent)toast('Download nao concluido: '+(e.message||'indisponivel'));return false;}
+}
+async function startPlaylistDownload(pid,retry=false){
+ if(downloadBatch.running){toast('Uma fila de downloads ja esta em andamento');return;}
+ const tracks=getPlaylistTracks(pid);if(!tracks.length){toast('Playlist sem musicas');return;}
+ if(tracks.length>500){toast('Uma playlist pode ter ate 500 faixas por lote');return;}
+ const items=tracks.map(t=>({id:t.id,title:t.title,artist:t.artist,status:isSaved(t.id)?'complete':'pending',message:''}));
+ const batch={created:Date.now(),items,status:'running',message:'Iniciando fila...'};
+ offlineBatches[pid]=batch;saveDownloadBatches();downloadBatch.running=true;downloadBatch.cancelled=false;downloadBatch.pid=pid;downloadBatch.items=items;
+ renderList();
+ for(const item of items){
+  if(downloadBatch.cancelled)break;
+  if(item.status==='complete')continue;
+  const t=tracks.find(x=>x.id===item.id);if(!t){item.status='error';item.message='Musica nao encontrada';continue;}
+  item.status='downloading';batch.message='Baixando '+t.title+' - '+t.artist;saveDownloadBatches();renderList();
+  try{
+   const ok=await downloadAnyTrack(t,true);
+   item.status=ok?'complete':'error';item.message=ok?'Salvo':'Fonte nao disponibilizou audio';
+  }catch(e){item.status='error';item.message=e.message||'Erro de download';}
+  saveDownloadBatches();if(state.view==='playlist-detail'&&state.playlistId===pid)renderList();
+ }
+ batch.status=downloadBatch.cancelled?'paused':'done';batch.message=downloadBatch.cancelled?'Fila pausada. Toque em Baixar playlist para continuar.':'Fila concluida. Confira as faixas que falharam.';
+ saveDownloadBatches();downloadBatch.running=false;downloadBatch.pid=null;downloadBatch.items=[];
+ await refreshOffline();renderList();toast(batch.status==='done'?'Fila concluida; confira os resultados':'Downloads pausados');
+}
+function pausePlaylistDownload(){downloadBatch.cancelled=true;window.ACLNativeOffline?.cancel?.();toast('Pausando fila de downloads');}
+
 // AUTOCOMPLETAR v1.6: nomes confirmados pelo catálogo externo + atalhos locais.
 // Não substitui automaticamente uma escolha ambígua. Nunca inventa gravações.
 const knownArtistHints=[
@@ -302,7 +405,7 @@ async function tx(method,entry){
 }
 async function refreshOffline(){
  try{
-  state.offline=(await tx('all')).sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
+  const browserTracks=await tx('all');const androidTracks=await nativeOfflineList();state.offline=[...new Map([...browserTracks,...androidTracks].map(t=>[t.id,t])).values()].sort((a,b)=>(b.savedAt||0)-(a.savedAt||0));
   $('#offlineCountSide').textContent=state.offline.length;
   const bytes=state.offline.reduce((sum,t)=>sum+(t.bytes||0),0);
   const size=bytes<1048576?Math.round(bytes/1024)+' KB':(bytes/1048576).toFixed(1)+' MB';
@@ -499,15 +602,16 @@ function row(t,i){
  const active=state.current?.id===t.id,like=!!state.favorites[t.id],downloaded=isSaved(t.id),src=prettySource[t.source]||t.source;
  const catalog=t.source==='catalog';const youtube=t.source==='youtube';
  const label='Reproduzir dentro do ACLFUTURE: '+t.artist+' — '+t.title;
+ const playlistAction=state.view==='playlist-detail'?`<button data-remove-song="${safe(t.id)}" title="Remover da playlist" aria-label="Remover da playlist">-</button>`:`<button data-quickadd="${safe(t.id)}" title="Adicionar a playlist" aria-label="Adicionar a playlist">+</button>`;
  const audioButton=(catalog||youtube)?`<button data-inline="${safe(t.id)}" title="Reproduzir aqui" aria-label="Reproduzir dentro do aplicativo" class="official-link">▶</button>`:`<button data-download="${safe(t.id)}" title="${downloaded?'Salva offline':t.downloadable?'Salvar offline':'Download não autorizado'}" aria-label="${downloaded?'Salva offline':t.downloadable?'Baixar faixa':'Download não autorizado'}" class="${downloaded?'saved':''}" ${!downloaded&&!t.downloadable?'disabled':''}>${downloaded?'✓':'↓'}</button>`;
- return `<div class="track-row ${active?'active':''} ${catalog?'catalog-row':''}" data-play="${safe(t.id)}" role="button" tabindex="0" aria-label="${safe(label)}"><span class="track-index">${active?'♫':i+1}</span><div class="track-title-cell">${cover(t)}<div class="song-words"><div class="song-name">${safe(t.title)}</div><div class="song-artist">${safe(t.artist)}${catalog&&t.album?` · ${safe(t.album)}`:''}</div></div></div><div class="hide-phone"><span class="source-tag">${safe(src)}</span></div><div class="track-duration hide-phone">${fmt(t.duration)}</div><div class="row-actions"><button data-like="${safe(t.id)}" title="${like?'Remover favorita':'Favoritar'}" aria-label="Favoritar" class="${like?'liked':''}">${like?'♥':'♡'}</button>${audioButton}<button data-menu="${safe(t.id)}" title="Mais opções" aria-label="Opções">⋮</button></div></div>`;
+ return `<div class="track-row ${active?'active':''} ${catalog?'catalog-row':''}" data-play="${safe(t.id)}" role="button" tabindex="0" aria-label="${safe(label)}"><span class="track-index">${active?'♫':i+1}</span><div class="track-title-cell">${cover(t)}<div class="song-words"><div class="song-name">${safe(t.title)}</div><div class="song-artist">${safe(t.artist)}${catalog&&t.album?` · ${safe(t.album)}`:''}</div></div></div><div class="hide-phone"><span class="source-tag">${safe(src)}</span></div><div class="track-duration hide-phone">${fmt(t.duration)}</div><div class="row-actions"><button data-like="${safe(t.id)}" title="${like?'Remover favorita':'Favoritar'}" aria-label="Favoritar" class="${like?'liked':''}">${like?'♥':'♡'}</button>${audioButton}${playlistAction}<button data-menu="${safe(t.id)}" title="Mais opções" aria-label="Opções">⋮</button></div></div>`;
 }
-function contentForView(){if(state.view==='favoritos')return Object.values(state.favorites);if(state.view==='offline')return state.offline;if(state.view==='playlist-detail')return (state.playlists[state.playlistId]?.ids||[]).map(id=>lookup(id)||state.playlists[state.playlistId]?.tracks?.find(t=>t.id===id)).filter(Boolean);return state.source==='local'?state.offline:state.tracks.filter(t=>state.source==='all'||t.source===state.source||(state.source==='youtube'&&t.source==='catalog'))}
-function lookup(id){return state.offline.find(x=>x.id===id)||state.tracks.find(x=>x.id===id)||state.queue.find(x=>x.id===id)||state.favorites[id]||null}
-function updateHead(){const changes={inicio:['MÚSICAS ORIGINAIS','Encontre a gravação certa','Pesquise os seus artistas e reproduza diretamente no ACLFUTURE Music.'],buscar:['BUSCA MUNDIAL',state.query?'Resultados para “'+state.query+'”':'O que vamos ouvir?',state.source==='youtube'?'Busque faixas e ouça com o reprodutor integrado. A disponibilidade varia por gravação.':state.source==='catalog'?'Faixas originais identificadas por álbum e artista. Toque para reproduzir aqui.':'Músicas independentes em catálogos de uso livre.'],favoritos:['SUA COLEÇÃO','Suas favoritas','Faixas que você marcou com o coração.'],offline:['SEMPRE COM VOCÊ','Disponíveis offline','Músicas guardadas neste dispositivo.'],playlists:['ORGANIZE SEU SOM','Minhas playlists','Monte seleções para cada momento.'],'playlist-detail':['SUAS PLAYLISTS',state.playlists[state.playlistId]?.name||'Playlist','Músicas escolhidas por você.']}[state.view]||[];$('#trackKicker').textContent=changes[0]||'';$('#tracksTitle').textContent=changes[1]||'';$('#trackSubtitle').textContent=changes[2]||'';$('#hero').hidden=state.view!=='inicio';$('#genresSection').hidden=state.view!=='inicio';$('.track-tools').hidden=['favoritos','offline','playlists','playlist-detail'].includes(state.view);$('.table-head').hidden=state.view==='playlists';$('#searchKind').hidden=!['youtube','catalog'].includes(state.source)||!['inicio','buscar'].includes(state.view);$('#catalogNotice').hidden=!['youtube','catalog'].includes(state.source)||!['inicio','buscar'].includes(state.view);$('#loadMore').hidden=!['buscar','inicio'].includes(state.view)||state.loading||!state.hasMore;$$('[data-view]').forEach(el=>el.classList.toggle('selected',el.dataset.view===state.view))}
-function renderList(){updateHead();const el=$('#trackList');if(state.view==='playlists'){el.innerHTML=`<div class="playlist-grid"><button class="playlist-card" id="playlistNewCard"><div class="playlist-card-icon">＋</div><div><strong>Criar playlist</strong><p>Nova coleção de músicas</p></div></button>${Object.entries(state.playlists).map(([id,p])=>`<button class="playlist-card" data-playlist="${safe(id)}"><div class="playlist-card-icon">♫</div><div><strong>${safe(p.name)}</strong><p>${p.ids.length} músicas</p></div></button>`).join('')}</div>`;$('#playlistNewCard')?.addEventListener('click',createPlaylist);return}
- const tracks=contentForView();if(!tracks.length){const reason=state.loading?'Carregando músicas...':state.view==='offline'?'Suas músicas baixadas e importadas aparecerão aqui.':state.view==='favoritos'?'Toque no coração de uma música para encontrá-la aqui.':state.view==='playlist-detail'?'Adicione músicas pelo menu ⋮ das faixas.':state.sourceErrors.length?'Não foi possível carregar os catálogos: '+state.sourceErrors.join(', ')+'. Confira a conexão e tente outra fonte.':(state.source==='catalog'||state.source==='youtube')?(state.query?'Nenhuma gravação com esse artista ou título foi localizada. Experimente o modo Músicas ou busque pelo canal oficial no YouTube.':'Digite o nome de uma música, banda ou cantor para pesquisar gravações de todo o mundo.'):'Tente buscar outro artista, estilo ou palavra.';const action=state.view==='offline'?'<button data-import="1">Importar áudio do celular</button>':!['favoritos','playlist-detail'].includes(state.view)?'<button data-retry="1">Tentar buscar novamente</button>':'';el.innerHTML=`<div class="empty-state"><div class="empty-icon">♫</div><strong>${state.loading?'Buscando...':'Nenhuma música aqui por enquanto'}</strong><p>${safe(reason)}</p>${action}</div>`;return}
- el.innerHTML=tracks.map((t,i)=>row(t,i)).join('');if(state.sourceErrors.length&&['inicio','buscar'].includes(state.view))el.insertAdjacentHTML('beforeend',`<p class="error-text" style="font-size:10px;margin:10px 13px">Algumas fontes não responderam: ${safe(state.sourceErrors.join(', '))}. Os resultados disponíveis foram mantidos.</p>`);
+function contentForView(){if(state.view==='favoritos')return Object.values(state.favorites);if(state.view==='offline')return state.offline;if(state.view==='playlist-detail')return getPlaylistTracks(state.playlistId);return state.source==='local'?state.offline:state.tracks.filter(t=>state.source==='all'||t.source===state.source||(state.source==='youtube'&&t.source==='catalog'))}
+function lookup(id){return state.offline.find(x=>x.id===id)||state.tracks.find(x=>x.id===id)||state.queue.find(x=>x.id===id)||state.favorites[id]||Object.values(state.playlists).flatMap(p=>p.tracks||[]).find(x=>x.id===id)||null}
+function updateHead(){const changes={inicio:['MÚSICAS ORIGINAIS','Encontre a gravação certa','Pesquise os seus artistas e reproduza diretamente no ACLFUTURE Music.'],buscar:['BUSCA MUNDIAL',state.query?'Resultados para “'+state.query+'”':'O que vamos ouvir?',state.source==='youtube'?'Busque faixas e ouça com o reprodutor integrado. A disponibilidade varia por gravação.':state.source==='catalog'?'Faixas originais identificadas por álbum e artista. Toque para reproduzir aqui.':'Músicas independentes em catálogos de uso livre.'],favoritos:['SUA COLEÇÃO','Suas favoritas','Faixas que você marcou com o coração.'],offline:['SEMPRE COM VOCÊ','Disponíveis offline','Músicas guardadas neste dispositivo.'],biblioteca:['SUA BIBLIOTECA','Seus albuns e playlists','Organize suas musicas e leve seus albuns para ouvir offline.'],playlists:['ORGANIZE SEU SOM','Minhas playlists','Monte seleções para cada momento.'],'playlist-detail':['SUAS PLAYLISTS',state.playlists[state.playlistId]?.name||'Playlist','Músicas escolhidas por você.']}[state.view]||[];$('#trackKicker').textContent=changes[0]||'';$('#tracksTitle').textContent=changes[1]||'';$('#trackSubtitle').textContent=changes[2]||'';$('#hero').hidden=state.view!=='inicio';$('#genresSection').hidden=state.view!=='inicio';$('.track-tools').hidden=['favoritos','offline','playlists','biblioteca','playlist-detail'].includes(state.view);$('.table-head').hidden=state.view==='playlists'||state.view==='biblioteca';$('#searchKind').hidden=!['youtube','catalog'].includes(state.source)||!['inicio','buscar'].includes(state.view);$('#catalogNotice').hidden=!['youtube','catalog'].includes(state.source)||!['inicio','buscar'].includes(state.view);$('#loadMore').hidden=!['buscar','inicio'].includes(state.view)||state.loading||!state.hasMore;$$('[data-view]').forEach(el=>el.classList.toggle('selected',el.dataset.view===(state.view==='playlist-detail'?'biblioteca':state.view)))}
+function renderList(){updateHead();const el=$('#trackList');if(state.view==='playlists'||state.view==='biblioteca'){renderLibraryHome(el);return}
+ const tracks=contentForView();if(!tracks.length){const reason=state.loading?'Carregando músicas...':state.view==='offline'?'Suas músicas baixadas e importadas aparecerão aqui.':state.view==='favoritos'?'Toque no coração de uma música para encontrá-la aqui.':state.view==='playlist-detail'?'Adicione músicas pelo menu ⋮ das faixas.':state.sourceErrors.length?'Não foi possível carregar os catálogos: '+state.sourceErrors.join(', ')+'. Confira a conexão e tente outra fonte.':(state.source==='catalog'||state.source==='youtube')?(state.query?'Nenhuma gravação com esse artista ou título foi localizada. Experimente o modo Músicas ou busque pelo canal oficial no YouTube.':'Digite o nome de uma música, banda ou cantor para pesquisar gravações de todo o mundo.'):'Tente buscar outro artista, estilo ou palavra.';const action=state.view==='offline'?'<button data-import="1">Importar áudio do celular</button>':!['favoritos','playlist-detail'].includes(state.view)?'<button data-retry="1">Tentar buscar novamente</button>':'';el.innerHTML=(state.view==='playlist-detail'?playlistToolbarHtml(state.playlistId):'')+`<div class="empty-state"><div class="empty-icon">♫</div><strong>${state.loading?'Buscando...':'Nenhuma música aqui por enquanto'}</strong><p>${safe(reason)}</p>${action}</div>`;return}
+ el.innerHTML=(state.view==='playlist-detail'?playlistToolbarHtml(state.playlistId):'')+tracks.map((t,i)=>row(t,i)).join('');if(state.sourceErrors.length&&['inicio','buscar'].includes(state.view))el.insertAdjacentHTML('beforeend',`<p class="error-text" style="font-size:10px;margin:10px 13px">Algumas fontes não responderam: ${safe(state.sourceErrors.join(', '))}. Os resultados disponíveis foram mantidos.</p>`);
 }
 function navigate(view){if(state.source==='local'&&view!=='offline'){state.source='catalog';$('#sourceSelect').value=state.source}state.view=view;state.playlistId=view!=='playlist-detail'?null:state.playlistId;$('#sidebar').classList.remove('open');$('#overlay').hidden=true;renderList();$('#main').querySelector('.main-body').scrollTop=0;if(view==='buscar')$('#searchInput').focus();if(view==='offline')refreshOffline().then(renderList);if(view==='inicio'&&!state.tracks.length)discover()}
 function runSearch(q,selectedSong=null){state.preferredSong=selectedSong;closeSuggestions();if(state.source==='local'){state.source='catalog';$('#sourceSelect').value=state.source}state.query=(q||'').trim().slice(0,200);state.view='buscar';$('#searchInput').value=state.query;renderList();$('#pageBody').scrollTop=0;discover()}
@@ -581,6 +685,7 @@ async function playTrack(id,list){
  const q=(list||trackQueue()).slice();if(!q.some(x=>x.id===t.id))q.unshift(t);
  resetPlayers();state.current=t;state.queue=q;state.idx=q.findIndex(v=>v.id===t.id);
  updatePlayer();renderList();
+ if((t.nativeSaved||state.offline.find(x=>x.id===t.id)?.nativeSaved)&&window.ACLPlayer?.playOffline){nativePlayback.active=true;nativePlayback.mode='native';nativePlayback.loading=true;window.ACLPlayer.playOffline(t.id,token);updatePlayer();return;}
  if(t.source==='catalog'||t.source==='youtube'){
    nativePlayback.active=true;nativePlayback.loading=true;nativePlayback.playing=false;nativePlayback.mode='native';
    updatePlayer();toast('Localizando a gravação e preparando o áudio...');
@@ -628,7 +733,7 @@ function updateNativeProgress(){if(nativePlayback.mode!=='native')return;
  $('#progress').value=nativePlayback.duration?Math.round(1000*nativePlayback.position/nativePlayback.duration):0;
 }
 function updateMediaSession(){if(!('mediaSession'in navigator)||!state.current||nativePlayback.mode==='native')return;const t=state.current;try{navigator.mediaSession.metadata=new MediaMetadata({title:t.title,artist:t.artist,album:prettySource[t.source],artwork:t.image?[{src:t.image,sizes:'512x512'}]:[]});navigator.mediaSession.setActionHandler('play',togglePlay);navigator.mediaSession.setActionHandler('pause',togglePlay);navigator.mediaSession.setActionHandler('nexttrack',()=>next());navigator.mediaSession.setActionHandler('previoustrack',()=>previous());navigator.mediaSession.setActionHandler('seekto',({seekTime})=>{if(Number.isFinite(seekTime))audio.currentTime=seekTime});}catch(e){console.warn('MediaSession',e)}}
-function updatePlayer(){const t=state.current;$('#playingTitle').textContent=t?.title||'Escolha uma música';$('#playingArtist').textContent=t?.artist||'Sua trilha começa aqui';$('#playerCover').innerHTML=t?.image?`<img src="${safe(urlSafe(t.image))}" alt="Capa da faixa" onerror="this.remove()">`:'<span>♫</span>';$('#playPauseBtn').textContent=nativePlayback.loading?'…':nativePlayback.active?(nativePlayback.playing?'Ⅱ':'▶'):(audio.paused?'▶':'Ⅱ');$('#playerLike').textContent=t&&state.favorites[t.id]?'♥':'♡';$('#playerLike').classList.toggle('active',!!(t&&state.favorites[t.id]));$('#shuffleBtn').classList.toggle('on',state.shuffle);$('#repeatBtn').classList.toggle('on',state.repeat);$('#downloadCurrent').disabled=!t||(!isSaved(t.id)&&!t.downloadable);$('#downloadCurrent').title=t&&isSaved(t.id)?'Disponível offline':t?.downloadable?'Salvar offline':'Download não autorizado'}
+function updatePlayer(){const t=state.current;$('#playingTitle').textContent=t?.title||'Escolha uma música';$('#playingArtist').textContent=t?.artist||'Sua trilha começa aqui';$('#playerCover').innerHTML=t?.image?`<img src="${safe(urlSafe(t.image))}" alt="Capa da faixa" onerror="this.remove()">`:'<span>♫</span>';$('#playPauseBtn').textContent=nativePlayback.loading?'…':nativePlayback.active?(nativePlayback.playing?'Ⅱ':'▶'):(audio.paused?'▶':'Ⅱ');$('#playerLike').textContent=t&&state.favorites[t.id]?'♥':'♡';$('#playerLike').classList.toggle('active',!!(t&&state.favorites[t.id]));$('#shuffleBtn').classList.toggle('on',state.shuffle);$('#repeatBtn').classList.toggle('on',state.repeat);$('#downloadCurrent').disabled=!t||(!isSaved(t.id)&&!t.downloadable&&!['catalog','youtube'].includes(t.source));$('#downloadCurrent').title=t&&isSaved(t.id)?'Disponível offline':t?.downloadable?'Salvar offline':'Download não autorizado'}
 function next(){const q=state.queue;if(!q.length)return;let index;if(state.shuffle&&q.length>1){index=Math.floor(Math.random()*(q.length-1));if(index>=state.idx)index++}else index=(state.idx+1)%q.length;playTrack(q[index].id,q)}
 function previous(){if(nativePlayback.mode==='native'&&nativePlayback.position>3000){window.ACLPlayer?.seekTo?.(0);return}if(nativePlayback.mode==='none'&&audio.currentTime>3){audio.currentTime=0;return}const q=state.queue;if(!q.length)return;playTrack(q[(state.idx-1+q.length)%q.length].id,q)}
 function togglePlay(){
@@ -644,11 +749,11 @@ function togglePlay(){
 }
 
 // Limita a transferência, valida o tipo e só confirma sucesso após a transação concluir.
-async function downloadTrack(id){
+async function downloadTrack(id,silent=false){
  const t=lookup(id);if(!t)return;
- if(isSaved(id)){toast('Esta música já está salva offline.');return}
- if(activeDownloads.has(id)){toast('Esta faixa já está sendo baixada.');return}
- if(!t.downloadable||!t.downloadUrl||t.source==='catalog'){toast('Esta gravação comercial não pode ser baixada por este catálogo.');return}
+ if(isSaved(id)){if(!silent)toast('Esta musica ja esta offline.');return true}
+ if(activeDownloads.has(id)){if(!silent)toast('Esta faixa ja esta sendo baixada.');return false}
+ if(['catalog','youtube'].includes(t.source))return downloadNativeTrack(t);if(!t.downloadable||!t.downloadUrl){if(!silent)toast('Fonte sem download direto.');return false}
  activeDownloads.add(id);
  toast('Baixando faixa...');
  const controller=new AbortController();const timer=setTimeout(()=>controller.abort(),45000);
@@ -676,8 +781,8 @@ async function downloadTrack(id){
   const {blob:oldBlob,...metadata}=t;
   await tx('put',{...metadata,blob,savedAt:Date.now(),bytes:blob.size});
   await refreshOffline();renderList();updatePlayer();
-  toast('Música salva. Disponível offline neste dispositivo.');
- }catch(e){console.warn('Download offline:',e);showDownloadFallback(t)}
+  if(!silent)toast('Musica salva e disponivel offline.');return true;
+ }catch(e){console.warn('Download offline:',e);if(!silent)showDownloadFallback(t);return false}
  finally{clearTimeout(timer);activeDownloads.delete(id)}
 }
 
@@ -686,8 +791,8 @@ async function importFiles(files){if(!files?.length)return;let success=0;for(con
 
 function modal(title,body){$('#modalTitle').textContent=title;$('#modalContent').innerHTML=body;$('#modal').hidden=false}
 function closeModal(){$('#modal').hidden=true}
-function trackMenu(id){const t=lookup(id);if(!t)return;const pNames=Object.entries(state.playlists).map(([pid,p])=>`<button class="modal-row" data-addto="${safe(pid)}" data-song="${safe(t.id)}"><span>♫ ${safe(p.name)}</span><small>＋ Adicionar</small></button>`).join('');modal('Opções da música',`<div class="pill">${safe(prettySource[t.source]||t.source)}</div><h3 style="margin:4px 0 4px">${safe(t.title)}</h3><p class="modal-copy" style="margin-top:0">${safe(t.artist)}</p><button class="modal-row" data-like="${safe(t.id)}">${state.favorites[t.id]?'♥ Remover dos favoritos':'♡ Adicionar às favoritas'}</button>${(t.source==='catalog'||t.source==='youtube')?`<button class="modal-row" data-inline="${safe(t.id)}">▶ Reproduzir dentro do ACLFUTURE</button><p class="modal-copy">O reprodutor permanece no ACLFUTURE Music. A música integral depende de a fonte disponibilizar um stream compatível.</p>`:''}${!isSaved(t.id)&&t.downloadable?`<button class="modal-row" data-download="${safe(t.id)}">↓ Baixar e ouvir offline</button>`:''}${isSaved(t.id)?`<button class="modal-row" data-delete="${safe(t.id)}">Excluir cópia offline</button>`:''}<p class="modal-copy"><b>Adicionar à playlist</b></p>${pNames||'<p class="modal-copy">Você ainda não criou nenhuma playlist.</p>'}<button class="modal-row" data-create-add="${safe(t.id)}">＋ Criar playlist com esta faixa</button><p class="modal-copy">Licença/condições: <b>${safe(t.license||'Conferir com o artista')}</b></p>${t.attribution?`<p class="modal-copy"><b>Créditos:</b> ${safe(t.attribution)}</p><button class="modal-row" data-credit="${safe(t.id)}">Copiar créditos da faixa</button>`:''}${t.licenseUrl?`<a class="modal-link" href="${safe(t.licenseUrl)}" target="_blank" rel="noopener noreferrer">Condições da licença ↗</a>`:''}`)}
-function createPlaylist(addId){const val=typeof addId==='string'?addId:'';modal('Nova playlist',`<p class="modal-copy">Dê um nome para a sua coleção de músicas.</p><form id="newPlaylistForm"><input id="playlistNameInput" class="modal-input" placeholder="Ex.: Músicas para viajar" maxlength="60" required autocomplete="off"><input type="hidden" value="${safe(val)}" id="addSongAfterCreate"><button class="modal-btn" type="submit">Criar playlist</button></form>`);$('#newPlaylistForm').addEventListener('submit',e=>{e.preventDefault();const name=$('#playlistNameInput').value.trim();if(!name)return;const id='pl:'+Date.now();state.playlists[id]={name,ids:val?[val]:[],tracks:val?[lookup(val)].filter(Boolean).map(t=>{const {blob,...m}=t;return m}):[]};writeStore('acl_music_playlists',state.playlists);closeModal();toast('Playlist criada');state.view='playlists';renderList()});$('#playlistNameInput').focus()}
+function trackMenu(id){const t=lookup(id);if(!t)return;const pNames=Object.entries(state.playlists).map(([pid,p])=>`<button class="modal-row" data-addto="${safe(pid)}" data-song="${safe(t.id)}"><span>♫ ${safe(p.name)}</span><small>＋ Adicionar</small></button>`).join('');modal('Opções da música',`<div class="pill">${safe(prettySource[t.source]||t.source)}</div><h3 style="margin:4px 0 4px">${safe(t.title)}</h3><p class="modal-copy" style="margin-top:0">${safe(t.artist)}</p><button class="modal-row" data-like="${safe(t.id)}">${state.favorites[t.id]?'♥ Remover dos favoritos':'♡ Adicionar às favoritas'}</button>${(t.source==='catalog'||t.source==='youtube')?`<button class="modal-row" data-inline="${safe(t.id)}">▶ Reproduzir dentro do ACLFUTURE</button><p class="modal-copy">O reprodutor permanece no ACLFUTURE Music. A música integral depende de a fonte disponibilizar um stream compatível.</p>`:''}${!isSaved(t.id)&&(t.downloadable||['catalog','youtube'].includes(t.source))?`<button class="modal-row" data-download="${safe(t.id)}">↓ Baixar e ouvir offline</button>`:''}${isSaved(t.id)?`<button class="modal-row" data-delete="${safe(t.id)}">Excluir cópia offline</button>`:''}<p class="modal-copy"><b>Adicionar à playlist</b></p>${pNames||'<p class="modal-copy">Você ainda não criou nenhuma playlist.</p>'}<button class="modal-row" data-create-add="${safe(t.id)}">＋ Criar playlist com esta faixa</button><p class="modal-copy">Licença/condições: <b>${safe(t.license||'Conferir com o artista')}</b></p>${t.attribution?`<p class="modal-copy"><b>Créditos:</b> ${safe(t.attribution)}</p><button class="modal-row" data-credit="${safe(t.id)}">Copiar créditos da faixa</button>`:''}${t.licenseUrl?`<a class="modal-link" href="${safe(t.licenseUrl)}" target="_blank" rel="noopener noreferrer">Condições da licença ↗</a>`:''}`)}
+function createPlaylist(addId){const val=typeof addId==='string'?addId:'';modal('Nova playlist',`<p class="modal-copy">Dê um nome para a sua coleção de músicas.</p><form id="newPlaylistForm"><input id="playlistNameInput" class="modal-input" placeholder="Ex.: Músicas para viajar" maxlength="60" required autocomplete="off"><input type="hidden" value="${safe(val)}" id="addSongAfterCreate"><button class="modal-btn" type="submit">Criar playlist</button></form>`);$('#newPlaylistForm').addEventListener('submit',e=>{e.preventDefault();const name=$('#playlistNameInput').value.trim();if(!name)return;const id='pl:'+Date.now();state.playlists[id]={name,ids:val?[val]:[],tracks:val?[lookup(val)].filter(Boolean).map(t=>{const {blob,...m}=t;return m}):[]};writeStore('acl_music_playlists',state.playlists);closeModal();toast('Playlist criada');state.view='playlist-detail';state.playlistId=id;renderList()});$('#playlistNameInput').focus()}
 function addToPlaylist(pid,songId){if(!state.playlists[pid])return;const p=state.playlists[pid];if(!p.ids.includes(songId))p.ids.push(songId);const t=lookup(songId);if(t){p.tracks=p.tracks||[];if(!p.tracks.find(v=>v.id===songId)){const {blob,...m}=t;p.tracks.push(m)}}writeStore('acl_music_playlists',state.playlists);toast('Adicionada à playlist '+p.name);closeModal();renderList()}
 async function removeOffline(id){if(!isSaved(id))return;modal('Excluir música offline?',`<p class="modal-copy">A cópia salva de <b>${safe(lookup(id)?.title||'esta música')}</b> será removida deste dispositivo. A faixa original e suas playlists não serão alteradas.</p><button class="modal-btn" data-confirm-remove="${safe(id)}">Excluir cópia offline</button>`)}
 function showQueue(){const q=state.queue;if(!q.length){modal('Fila de reprodução','<p class="modal-copy">Escolha músicas para começar sua fila.</p>');return}modal('Próximas músicas',q.map((t,i)=>`<button class="modal-row" data-queueplay="${safe(t.id)}"><span>${i+1}. ${safe(t.title)}<br><small>${safe(t.artist)}</small></span>${i===state.idx?'♫':''}</button>`).join(''))}
@@ -696,15 +801,25 @@ function showMobilePlayerOptions(){
  modal('Opções de reprodução',`<button class="modal-row" data-toggle-shuffle="1">⇄ Reprodução aleatória: <b>${state.shuffle?'Ligada':'Desligada'}</b></button><button class="modal-row" data-toggle-repeat="1">↻ Repetir faixa: <b>${state.repeat?'Ligado':'Desligado'}</b></button><button class="modal-row" data-show-queue="1">☷ Ver fila de reprodução</button><button class="modal-row" data-menu-current="1">⋮ Opções desta música</button>`);
 }
 
-function showAbout(){modal('ACLFUTURE Music',`<img class="modal-logo" src="assets/aclfuture-oficial.jpg" alt="Logotipo oficial ACLFUTURE"><p class="modal-copy"><b>Versão 1.5 Beta — reprodução integrada no Android.</b> Pesquise gravações comercialmente lançadas por artista ou música. A reprodução acontece dentro do ACLFUTURE Music e depende das fontes disponíveis. Audius, Openverse e Free To Use permanecem disponíveis para músicas independentes. O aplicativo não tem servidor de contas nem vende seus dados; playlists, favoritos e áudios baixados ficam armazenados neste dispositivo.</p><p class="modal-copy">Algumas faixas exigem créditos e podem ter condições específicas de uso. O app não oferece o catálogo licenciado do Spotify e não baixa áudios de YouTube sem autorização.</p><p class="modal-copy">Ouvindo offline: baixe faixas disponíveis ou importe seus arquivos MP3. A reprodução offline é feita com o armazenamento local do navegador.</p><a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://openverse.org">Openverse ↗</a><a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://audius.co">Audius ↗</a><a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://freetouse.com/license">Licenças Free To Use ↗</a>`)}
+function showAbout(){modal('ACLFUTURE Music',`<img class="modal-logo" src="assets/aclfuture-oficial.jpg" alt="Logotipo oficial ACLFUTURE"><p class="modal-copy"><b>Versao 1.9 Beta - Biblioteca com playlists e downloads em lote.</b> Pesquise gravações comercialmente lançadas por artista ou música. A reprodução acontece dentro do ACLFUTURE Music e depende das fontes disponíveis. Audius, Openverse e Free To Use permanecem disponíveis para músicas independentes. O aplicativo não tem servidor de contas nem vende seus dados; playlists, favoritos e áudios baixados ficam armazenados neste dispositivo.</p><p class="modal-copy">Algumas faixas exigem créditos e podem ter condições específicas de uso. O aplicativo tenta salvar audios retornados pelo extrator, mas servidores podem bloquear ou indisponibilizar faixas. Resultados sao verificados individualmente.</p><p class="modal-copy">Ouvindo offline: baixe faixas disponíveis ou importe seus arquivos MP3. No Android, os downloads do motor nativo são guardados no armazenamento privado do aplicativo. Arquivos importados permanecem na biblioteca local.</p><a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://openverse.org">Openverse ↗</a><a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://audius.co">Audius ↗</a><a class="modal-link" target="_blank" rel="noopener noreferrer" href="https://freetouse.com/license">Licenças Free To Use ↗</a>`)}
 function install(){if(window.__ACLFUTURE_ANDROID__){toast('ACLFUTURE Music já está instalado neste Android.');return}if(installPrompt){installPrompt.prompt();installPrompt.userChoice.finally(()=>{installPrompt=null});return}modal('Instalar no Android',`<p class="modal-copy"><b>Para instalar como aplicativo:</b> publique esta pasta em hospedagem HTTPS (por exemplo, GitHub Pages), abra o endereço no <b>Chrome para Android</b> e toque em <b>⋮ → Adicionar à tela inicial → Instalar</b>.</p><p class="modal-copy">Abrir o arquivo HTML diretamente não instala a PWA: a instalação exige HTTPS. No Android, as músicas importadas funcionam no navegador mesmo sem rede enquanto o armazenamento for mantido.</p>`)}
 
 // Interações delegadas (evita handlers presos a resultados dinâmicos).
 document.addEventListener('click',async e=>{
  const nav=e.target.closest('[data-view]');if(nav){e.preventDefault();navigate(nav.dataset.view);return}
  const gen=e.target.closest('[data-genre]');if(gen){state.source='catalog';$('#sourceSelect').value=state.source;state.searchKind='artist';$('#searchKind').value='artist';runSearch(gen.dataset.genre);return}
- const target=e.target.closest('[data-inline],[data-like],[data-download],[data-menu],[data-delete],[data-addto],[data-create-add],[data-playlist],[data-import],[data-retry],[data-confirm-remove],[data-queueplay],[data-credit],[data-toggle-shuffle],[data-toggle-repeat],[data-show-queue],[data-menu-current]');
+ const target=e.target.closest('[data-inline],[data-like],[data-download],[data-quickadd],[data-remove-song],[data-download-playlist],[data-play-all],[data-pause-download],[data-retry-download],[data-create-playlist],[data-rename-playlist],[data-delete-playlist],[data-confirm-delete-playlist],[data-menu],[data-delete],[data-addto],[data-create-add],[data-playlist],[data-import],[data-retry],[data-confirm-remove],[data-queueplay],[data-credit],[data-toggle-shuffle],[data-toggle-repeat],[data-show-queue],[data-menu-current]');
  if(target){e.stopPropagation();const d=target.dataset;
+   if(d.quickadd){quickAddToPlaylist(d.quickadd);return}
+   if(d.removeSong){removeSongFromPlaylist(state.playlistId,d.removeSong);return}
+   if(d.createPlaylist){createPlaylist();return}
+   if(d.playAll){const tracks=getPlaylistTracks(d.playAll);if(tracks.length)playTrack(tracks[0].id,tracks);return}
+   if(d.downloadPlaylist){startPlaylistDownload(d.downloadPlaylist,false);return}
+   if(d.retryDownload){startPlaylistDownload(d.retryDownload,true);return}
+   if(d.pauseDownload){pausePlaylistDownload();return}
+   if(d.renamePlaylist){renamePlaylist(d.renamePlaylist);return}
+   if(d.deletePlaylist){deletePlaylist(d.deletePlaylist);return}
+   if(d.confirmDeletePlaylist){delete state.playlists[d.confirmDeletePlaylist];delete offlineBatches[d.confirmDeletePlaylist];writeStore('acl_music_playlists',state.playlists);saveDownloadBatches();closeModal();navigate('biblioteca');return}
    if(d.inline){const t=lookup(d.inline);closeModal();if(t)playTrack(t.id);return}
    if(d.toggleShuffle){state.shuffle=!state.shuffle;updatePlayer();closeModal();toast(state.shuffle?'Aleatório ativado':'Aleatório desativado');return}
    if(d.toggleRepeat){state.repeat=!state.repeat;updatePlayer();closeModal();toast(state.repeat?'Repetição ativada':'Repetição desativada');return}
@@ -712,10 +827,10 @@ document.addEventListener('click',async e=>{
    if(d.menuCurrent){trackMenu(state.current?.id);return}
    if(d.credit){const track=lookup(d.credit);if(track?.attribution){navigator.clipboard?.writeText(track.attribution).then(()=>toast('Créditos copiados')).catch(()=>toast('Copie os créditos na ficha da faixa'));}return}
    if(d.like){favorite(d.like);if(!$('#modal').hidden){closeModal()}return}
-   if(d.download){closeModal();await downloadTrack(d.download);return}
+   if(d.download){closeModal();const t=lookup(d.download);if(t)await downloadAnyTrack(t,false);return}
    if(d.menu){trackMenu(d.menu);return}
    if(d.delete){await removeOffline(d.delete);return}
-   if(d.confirmRemove){try{await tx('delete',d.confirmRemove);await refreshOffline();if(state.current?.id===d.confirmRemove){playRequest++;resetPlayers();audio.pause();audio.removeAttribute('src');audio.load();if(currentObjectURL){URL.revokeObjectURL(currentObjectURL);currentObjectURL=''}state.current=null;state.queue=[]}closeModal();toast('Cópia offline excluída');renderList();updatePlayer()}catch(e){console.error(e);toast('Não foi possível excluir a cópia offline')}return}
+   if(d.confirmRemove){try{if(state.offline.find(t=>t.id===d.confirmRemove)?.nativeSaved){await offlineCall('remove',[d.confirmRemove],30000)}else{await tx('delete',d.confirmRemove)};await refreshOffline();if(state.current?.id===d.confirmRemove){playRequest++;resetPlayers();audio.pause();audio.removeAttribute('src');audio.load();if(currentObjectURL){URL.revokeObjectURL(currentObjectURL);currentObjectURL=''}state.current=null;state.queue=[]}closeModal();toast('Cópia offline excluída');renderList();updatePlayer()}catch(e){console.error(e);toast('Não foi possível excluir a cópia offline')}return}
    if(d.addto){addToPlaylist(d.addto,d.song);return}
    if(d.createAdd){createPlaylist(d.createAdd);return}
    if(d.playlist){state.playlistId=d.playlist;state.view='playlist-detail';renderList();return}
@@ -755,7 +870,7 @@ $('#playPauseBtn').addEventListener('click',togglePlay);$('#previousBtn').addEve
 $('#shuffleBtn').addEventListener('click',()=>{state.shuffle=!state.shuffle;updatePlayer();toast(state.shuffle?'Modo aleatório ativado':'Modo aleatório desativado')});
 $('#repeatBtn').addEventListener('click',()=>{state.repeat=!state.repeat;updatePlayer();toast(state.repeat?'Repetir faixa ativado':'Repetir faixa desativado')});
 $('#playerLike').addEventListener('click',()=>state.current?favorite(state.current.id):toast('Escolha uma faixa'));
-$('#queueBtn').addEventListener('click',showQueue);$('#playerMobileMore').addEventListener('click',showMobilePlayerOptions);$('#downloadCurrent').addEventListener('click',()=>state.current&&downloadTrack(state.current.id));
+$('#queueBtn').addEventListener('click',showQueue);$('#playerMobileMore').addEventListener('click',showMobilePlayerOptions);$('#downloadCurrent').addEventListener('click',()=>state.current&&downloadAnyTrack(state.current,false));
 $('#volume').addEventListener('input',e=>{audio.volume=Number(e.target.value)/100;window.ACLPlayer?.setVolume?.(Number(e.target.value)/100);});
 $('#progress').addEventListener('input',e=>{if(nativePlayback.mode==='native'&&nativePlayback.duration>0){window.ACLPlayer?.seekTo?.(Math.round(Number(e.target.value)*nativePlayback.duration/1000));return}if(Number.isFinite(audio.duration))audio.currentTime=Number(e.target.value)/1000*audio.duration});
 if(window.__ACLFUTURE_ANDROID__){$('#installBtn').hidden=true;$('#installSide').textContent='Aplicativo instalado';document.addEventListener('click',e=>{const link=e.target.closest('a[target="_blank"]');if(link&&/^https?:/.test(link.href)){e.preventDefault();toast('Esta versão mantém a navegação dentro do ACLFUTURE Music.')}},true)}

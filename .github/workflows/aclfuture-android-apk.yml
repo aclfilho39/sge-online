@@ -1,4 +1,4 @@
-name: ACLFUTURE Music 1.8 — busca por grafia aproximada
+name: ACLFUTURE Music 1.9 - Biblioteca com playlists e downloads
 on:
   workflow_dispatch:
   push:
@@ -103,20 +103,26 @@ jobs:
         working-directory: android-studio
         continue-on-error: true
         run: gradle --no-daemon :app:testDebugUnitTest --tests com.aclfuture.music.ExtractorLiveSmokeTest --info
+      - name: Validar ponte nativa offline e identidade oficial
+        run: |
+          test -s android-studio/app/src/main/java/com/aclfuture/music/OfflineBridge.java
+          test -s android-studio/app/src/main/assets/www/assets/by-tunico.png
+          grep -q "ACLNativeOffline" android-studio/app/src/main/java/com/aclfuture/music/MainActivity.java
+          grep -q "playOffline" android-studio/app/src/main/java/com/aclfuture/music/PlayerBridge.java
       - name: Publicar artefato APK
         uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-1.8-APK
+          name: ACLFUTURE-Music-Android-1.9-APK
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK para download via navegador Android
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-8-busca-fonetica'
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-9-biblioteca'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.8_BUSCA_APROXIMADA.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.9_BIBLIOTECA.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f release/ACLFUTURE_Music_1.8_BUSCA_APROXIMADA.apk
+          git add -f release/ACLFUTURE_Music_1.9_BIBLIOTECA.apk
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish ACLFUTURE Music 1.8 fuzzy search APK [skip ci]'
-            git push origin HEAD:refs/heads/aclfuture-music-android-1-8-busca-fonetica
+            git commit -m 'Publish ACLFUTURE Music 1.9 fuzzy search APK [skip ci]'
+            git push origin HEAD:refs/heads/aclfuture-music-android-1-9-biblioteca
           fi

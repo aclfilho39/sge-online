@@ -89,6 +89,20 @@ final class PlayerBridge {
             }catch(Exception e){android.util.Log.e("ACL_Music_Player","Start failed",e);emit("error",reqId,0,0,false,false);}
         });
     }
+    @JavascriptInterface public void playOffline(String id,int reqId){
+        if(id==null||id.length()>250||reqId<=0)return;
+        activity.runOnUiThread(()->{
+            if(closed)return;
+            java.io.File audioFile=OfflineBridge.getSavedFile(activity,id);
+            if(audioFile==null){emit("error",reqId,0,0,false,false);return;}
+            try{
+                closeEmbeddedInternal();activeId=reqId;playingRequested=true;
+                player.stop();player.clearMediaItems();
+                player.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(audioFile)));
+                player.prepare();player.play();emitState("state");
+            }catch(Exception e){android.util.Log.e("ACL_Music_Player","Saved file failed",e);emit("error",reqId,0,0,false,false);}
+        });
+    }
     @JavascriptInterface public void pause(){activity.runOnUiThread(()->{if(!closed){player.pause();playingRequested=false;emitState("state");}});}
     @JavascriptInterface public void resume(){activity.runOnUiThread(()->{if(!closed){player.play();playingRequested=true;emitState("state");}});}
     @JavascriptInterface public void stop(){activity.runOnUiThread(()->{if(!closed){activeId=0;playingRequested=false;player.stop();player.clearMediaItems();closeEmbeddedInternal();}});}

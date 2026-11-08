@@ -28,14 +28,14 @@
     </nav>
     <div class="sidebar-label gap-top">SUA COLEÇÃO</div>
     <nav class="side-nav">
-      <button class="nav-item" data-view="playlists"><span class="navico">▤</span><span>Minhas playlists</span></button>
+      <button class="nav-item" data-view="biblioteca"><span class="navico">▤</span><span>Biblioteca</span></button>
       <button class="nav-item" id="newPlaylistSide"><span class="navico plus-icon">＋</span><span>Criar playlist</span></button>
       <button class="nav-item" id="importSide"><span class="navico">♫</span><span>Importar MP3</span></button>
     </nav>
     <div class="side-bottom">
       <div class="legal-note"><span class="pulse-dot"></span><span>Sem anúncios próprios.<br>Reprodução integrada · offline local.</span></div>
       <button class="install-side" id="installSide">↓ &nbsp; Instalar no Android</button>
-      <div class="side-caption">ACLFUTURE MUSIC · versão 1.8 BETA</div>
+      <img class="by-tunico by-tunico-side" src="assets/by-tunico.png" alt="By Tunico - assinatura original"><div class="side-caption">ACLFUTURE MUSIC · versao 1.9 BETA</div>
     </div>
   </aside>
 
@@ -81,7 +81,7 @@
     <div class="player-center"><div class="play-controls"><button id="shuffleBtn" class="ctl secondary" title="Reprodução aleatória" aria-label="Aleatório">⇄</button><button id="previousBtn" class="ctl" title="Anterior" aria-label="Anterior">⏮</button><button id="playPauseBtn" class="ctl big-play" title="Reproduzir" aria-label="Reproduzir">▶</button><button id="nextBtn" class="ctl" title="Próxima" aria-label="Próxima">⏭</button><button id="repeatBtn" class="ctl secondary" title="Repetir" aria-label="Repetir">↻</button></div><div class="progress-controls"><span id="timeNow">0:00</span><input type="range" id="progress" min="0" max="1000" value="0" aria-label="Progresso da faixa"><span id="timeTotal">0:00</span></div></div>
     <div class="player-right"><button id="queueBtn" class="ctl secondary" title="Fila" aria-label="Fila de reprodução">☷</button><button id="downloadCurrent" class="ctl secondary" title="Salvar offline" aria-label="Download offline">↓</button><span class="volume-icon">◖))</span><input id="volume" type="range" min="0" max="100" value="80" aria-label="Volume"></div>
   </div>
-  <nav class="bottom-nav" aria-label="Navegação rápida"><button data-view="inicio" class="selected"><span>⌂</span>Início</button><button data-view="buscar"><span>⌕</span>Buscar</button><button data-view="favoritos"><span>♡</span>Favoritas</button><button data-view="offline"><span>↓</span>Offline</button></nav>
+  <nav class="bottom-nav" aria-label="Navegação rápida"><button data-view="inicio" class="selected"><span>⌂</span>Início</button><button data-view="buscar"><span>⌕</span>Buscar</button><button data-view="biblioteca"><span>♡</span>Biblioteca</button><button data-view="offline"><span>↓</span>Offline</button></nav>
   <audio id="audio" preload="metadata" playsinline></audio>
   <div id="embeddedPanel" class="embedded-panel" hidden><div class="embedded-shell"><div class="embedded-head"><span>▶ REPRODUÇÃO INTEGRADA</span><button id="embeddedClose" aria-label="Fechar reprodutor">×</button></div><iframe id="embeddedFrame" title="Vídeo musical incorporado" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
   <input type="file" id="fileInput" accept="audio/*,.mp3,.ogg,.m4a,.wav,.flac" multiple hidden>

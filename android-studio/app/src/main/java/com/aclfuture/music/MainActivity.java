@@ -35,6 +35,7 @@ public final class MainActivity extends Activity {
     private CatalogBridge catalogBridge;
     private YouTubeBridge youtubeBridge;
     private PlayerBridge playerBridge;
+    private OfflineBridge offlineBridge;
     private ValueCallback<Uri[]> uploadCallback;
     private int rendererRestarts=0;
 
@@ -106,6 +107,8 @@ public final class MainActivity extends Activity {
         web.addJavascriptInterface(youtubeBridge,"ACLYT");
         playerBridge=new PlayerBridge(this,web);
         web.addJavascriptInterface(playerBridge,"ACLPlayer");
+        offlineBridge=new OfflineBridge(this,web);
+        web.addJavascriptInterface(offlineBridge,"ACLNativeOffline");
         web.loadUrl(HOME);
     }
     private static boolean isLocal(Uri uri){
@@ -151,6 +154,7 @@ public final class MainActivity extends Activity {
         if(catalogBridge!=null){catalogBridge.close();catalogBridge=null;}
         if(youtubeBridge!=null){youtubeBridge.close();youtubeBridge=null;}
         if(playerBridge!=null){playerBridge.close();playerBridge=null;}
+        if(offlineBridge!=null){offlineBridge.close();offlineBridge=null;}
         if(web!=null){web.destroy();web=null;}
     }
     @Override protected void onDestroy(){cleanUp();super.onDestroy();}
