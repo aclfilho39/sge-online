@@ -15,6 +15,8 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.text.Normalizer;
+import org.json.JSONArray;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.atomic.AtomicInteger;
@@ -26,10 +28,13 @@ import java.util.concurrent.atomic.AtomicInteger;
 final class CatalogBridge {
     private final Activity activity;
     private final WebView web;
-    private final ExecutorService pool = Executors.newFixedThreadPool(2);
+    private final ExecutorService pool = Executors.newFixedThreadPool(3);
     private final AtomicInteger latestSearch = new AtomicInteger(0);
     private final AtomicInteger latestArtistSuggest = new AtomicInteger(0);
     private final AtomicInteger latestSongSuggest = new AtomicInteger(0);
+    private final AtomicInteger latestFuzzySuggest = new AtomicInteger(0);
+    private static final Object FUZZY_LOCK = new Object();
+    private static long lastMusicBrainzCall = 0;
     private static final int MAX_RESPONSE_BYTES = 2_000_000;
 
     CatalogBridge(Activity activity, WebView web) {
@@ -86,6 +91,61 @@ final class CatalogBridge {
         });
     }
 
+    /** Search nearby spellings in MusicBrainz, used only if ordinary suggestions fail. */
+    @JavascriptInterface
+    public void suggestFuzzy(String queryText, int reqId) {
+        final String query = queryText == null ? "" : queryText.trim();
+        if(reqId <= 0 || query.length() < 4 || query.length() > 120) {
+            answerSuggestion(reqId,"{\"results\":[]}"); return;
+        }
+        latestFuzzySuggest.set(reqId);
+        pool.execute(() -> {
+            if(reqId != latestFuzzySuggest.get())return;
+            try {
+                String lucene = buildFuzzyQuery(query);
+                if(lucene.isEmpty()) { answerSuggestion(reqId,"{\"results\":[]}");return; }
+                // Public MusicBrainz API policy: at most one query/second per client.
+                synchronized (FUZZY_LOCK) {
+                    long wait = Math.max(0, 1150 - (System.currentTimeMillis() - lastMusicBrainzCall));
+                    if(wait > 0)Thread.sleep(wait);
+                    lastMusicBrainzCall=System.currentTimeMillis();
+                }
+                if(reqId != latestFuzzySuggest.get())return;
+                String endpoint="https://musicbrainz.org/ws/2/artist/?query="
+                    + URLEncoder.encode(lucene,"UTF-8") + "&fmt=json&limit=30";
+                JSONObject response = new JSONObject(fetchUrl(endpoint));
+                JSONArray names = response.optJSONArray("artists");
+                JSONArray results = new JSONArray();
+                if(names != null) for(int i=0;i<names.length();i++) {
+                    JSONObject item=names.optJSONObject(i);
+                    if(item==null)continue;
+                    String name=item.optString("name", "").trim();
+                    if(name.length()<2||name.length()>140)continue;
+                    results.put(new JSONObject().put("artistName", name));
+                }
+                if(reqId==latestFuzzySuggest.get())
+                    answerSuggestion(reqId,new JSONObject().put("results",results).toString());
+            } catch(Exception err) {
+                if(reqId==latestFuzzySuggest.get())answerSuggestion(reqId,"{\"results\":[]}");
+            }
+        });
+    }
+
+    static String buildFuzzyQuery(String typed) {
+        String normalized=Normalizer.normalize(typed==null?"":typed,Normalizer.Form.NFD)
+            .replaceAll("\\p{M}","").toLowerCase(java.util.Locale.ROOT)
+            .replaceAll("[^a-z0-9 ]"," ").trim();
+        if(normalized.isEmpty())return "";
+        StringBuilder lucene=new StringBuilder();
+        int used=0;
+        for(String term:normalized.split("\\s+")) {
+            if(term.length()<2||used>=4)continue;
+            if(used++>0)lucene.append(" AND ");
+            lucene.append("artist:").append(term).append(term.length()<=3?"*":"~1");
+        }
+        return lucene.toString();
+    }
+
     private String fetchSuggestions(String query,String kind,String country) throws Exception {
         String endpoint="https://itunes.apple.com/search?media=music&entity="
             + ("song".equals(kind)?"song":"musicArtist")+"&country="+country
@@ -116,7 +176,7 @@ final class CatalogBridge {
             conn.setReadTimeout(12000);
             conn.setRequestMethod("GET");
             conn.setRequestProperty("Accept", "application/json");
-            conn.setRequestProperty("User-Agent", "ACLFUTURE-Music/1.7 Android");
+            conn.setRequestProperty("User-Agent", "ACLFUTURE-Music/1.8 (https://github.com/aclfilho39/sge-online)");
             if(conn.getResponseCode() != 200) throw new java.io.IOException("Catálogo HTTP " + conn.getResponseCode());
             String type=conn.getContentType();
             if(type!=null && !type.contains("json") && !type.contains("text/javascript"))

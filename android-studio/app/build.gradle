@@ -3,11 +3,11 @@ android {
     namespace 'com.aclfuture.music'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.aclfuture.music.preview17'
+        applicationId 'com.aclfuture.music.preview18'
         minSdk 26
         targetSdk 34
-        versionCode 17
-        versionName '1.7.0-beta'
+        versionCode 18
+        versionName '1.8.0-beta'
     }
     compileOptions {
         coreLibraryDesugaringEnabled true

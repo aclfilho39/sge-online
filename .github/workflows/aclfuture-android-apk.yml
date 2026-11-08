@@ -1,4 +1,4 @@
-name: ACLFUTURE Music 1.7 — busca combinada de músicas e artistas
+name: ACLFUTURE Music 1.8 — busca por grafia aproximada
 on:
   workflow_dispatch:
   push:
@@ -78,8 +78,27 @@ jobs:
               print('FAIXA:',title,'| ARTISTA:',artist,'| REGISTROS ENCONTRADOS:',len(matching))
               if not matching: raise RuntimeError('Nenhuma correspondencia encontrada para '+title+' - '+artist)
           PYTEST
+      - name: Testar grafia aproximada no MusicBrainz (consulta real)
+        continue-on-error: true
+        run: |
+          python3 - <<'PYMB'
+          import json,urllib.parse,urllib.request
+          tests=[('mylles ke','Myles Kennedy'),('engnheiros hawai','Engenheiros do Hawaii'),('sufjan stvens','Sufjan Stevens')]
+          for typed,expected in tests:
+              terms=[t for t in typed.split() if len(t)>=2]
+              query=' AND '.join('artist:'+t+('*' if len(t)<=3 else '~1') for t in terms)
+              url='https://musicbrainz.org/ws/2/artist/?'+urllib.parse.urlencode({'query':query,'fmt':'json','limit':30})
+              request=urllib.request.Request(url,headers={'User-Agent':'ACLFUTURE-Music/1.8 (https://github.com/aclfilho39/sge-online)'})
+              with urllib.request.urlopen(request,timeout=18) as response: names=[x['name'] for x in json.load(response).get('artists',[])]
+              print('GRAFIA:',typed,'ESPERADO:',expected,'TOP:',names[:8])
+              if expected.casefold() not in [x.casefold() for x in names]:raise RuntimeError('Sem candidato: '+expected)
+              import time;time.sleep(1.2)
+          PYMB
       - name: Testar JavaScript sem erro de sintaxe
         run: node --check android-studio/app/src/main/assets/www/app.js
+      - name: Testar construtor de consultas aproximadas Java
+        working-directory: android-studio
+        run: gradle --no-daemon :app:testDebugUnitTest --tests com.aclfuture.music.FuzzySearchQueryTest
       - name: Testar busca e extração de áudio real (não bloqueante)
         working-directory: android-studio
         continue-on-error: true
@@ -87,17 +106,17 @@ jobs:
       - name: Publicar artefato APK
         uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-1.7-APK
+          name: ACLFUTURE-Music-Android-1.8-APK
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK para download via navegador Android
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-7-busca-musicas'
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-8-busca-fonetica'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.7_BUSCA_MUSICAS.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.8_BUSCA_APROXIMADA.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f release/ACLFUTURE_Music_1.7_BUSCA_MUSICAS.apk
+          git add -f release/ACLFUTURE_Music_1.8_BUSCA_APROXIMADA.apk
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish ACLFUTURE Music 1.7 music-title search APK [skip ci]'
-            git push origin HEAD:refs/heads/aclfuture-music-android-1-7-busca-musicas
+            git commit -m 'Publish ACLFUTURE Music 1.8 fuzzy search APK [skip ci]'
+            git push origin HEAD:refs/heads/aclfuture-music-android-1-8-busca-fonetica
           fi

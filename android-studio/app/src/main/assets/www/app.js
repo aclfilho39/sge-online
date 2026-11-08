@@ -28,7 +28,7 @@ const knownArtistHints=[
  'Taylor Swift','Ariana Grande','Dua Lipa','Billie Eilish','Lady Gaga','Madonna','Beyoncé','The Weeknd',
  'Bruno Mars','Michael Jackson','Whitney Houston','Harry Styles','Ed Sheeran','Adele','Rihanna','Shakira',
  'Bad Bunny','Karol G','Luis Miguel','Rosalía','Drake','Eminem','Kendrick Lamar','Snoop Dogg','Bob Marley',
- 'Daft Punk','David Guetta','Alok','Skrillex','BTS','BLACKPINK','Stray Kids','Ludovico Einaudi','Miles Davis'
+ 'Daft Punk','David Guetta','Alok','Skrillex','BTS','BLACKPINK','Stray Kids','Ludovico Einaudi','Miles Davis','Myles Kennedy'
 ];
 const suggestBox=$('#searchSuggestions');
 let suggestTimer, suggestSerial=0,suggestCallbackId=0,suggestHighlighted=-1;
@@ -70,6 +70,31 @@ function artistRelevance(query,name){
  if(a.startsWith(q))return 103;
  if(q.length>=4 && a.includes(q))return 77;
  if(q.length<4)return -100;
+ // Compara palavras em sequência: permite typo no início e prefixo parcial no fim.
+ // Ex.: mylles ke -> Myles Kennedy; gans rosis -> Guns N' Roses.
+ const stop=new Set(['and','n','the','do','da','de','dos','das']);
+ const typed=raw.split(/\s+/).filter(w=>w&&!stop.has(w));
+ const named=title.split(/\s+/).filter(w=>w&&!stop.has(w));
+ if(typed.length && typed.length<=named.length && named.length<=10){
+  let cursor=0,edits=0,missed=0,ok=true;
+  for(const t of typed){
+   let match=null;
+   for(let j=cursor;j<Math.min(named.length,cursor+3);j++){
+    const candidate=named[j];
+    if(candidate.startsWith(t)) {match={j,cost:0};break;}
+    if(t.length<4)continue;
+    // A última palavra ainda pode estar incompleta: compara também o prefixo.
+    const budget=t.length>=7?2:1;
+    const whole=levenshteinLimited(t,candidate,budget);
+    const prefix=levenshteinLimited(t,candidate.slice(0,Math.min(t.length,candidate.length)),budget);
+    const cost=Math.min(whole,prefix);
+    if(cost<=budget && (!match||cost<match.cost))match={j,cost};
+   }
+   if(!match){ok=false;break;}
+   edits+=match.cost;missed+=match.j-cursor;cursor=match.j+1;
+  }
+  if(ok)return Math.max(42,91-edits*10-missed*8-Math.max(0,named.length-typed.length)*3);
+ }
  const qTokens=raw.split(/\s+/),aTokens=title.split(/\s+/);
  const wholeLimit=Math.min(3,Math.max(1,Math.floor(q.length*.23)));
  const wholeDist=levenshteinLimited(q,a,wholeLimit);
@@ -89,12 +114,13 @@ function closeSuggestions(){
  suggestBox.hidden=true;$('#searchInput').setAttribute('aria-expanded','false');
  suggestHighlighted=-1;$('#searchInput').removeAttribute('aria-activedescendant');
 }
-function paintSuggestions(query,remote={artists:[],songs:[]},loading=false){
+function paintSuggestions(query,remote={artists:[],songs:[],fuzzy:[]},loading=false){
  if(!query || (document.activeElement!==$('#searchInput') && suggestBox.hidden)) return;
  const q=query.trim();if(q.length<2){closeSuggestions();return;}
  const kind=state.searchKind;
  const artistRows=Array.isArray(remote.artists)?remote.artists:[];
  const songRows=Array.isArray(remote.songs)?remote.songs:[];
+ const fuzzyRows=Array.isArray(remote.fuzzy)?remote.fuzzy:[];
  const map=new Map();
  const insert=(name,origin,itemKind,artist='',track=null)=>{
   if(!name||name.length>140)return;
@@ -102,13 +128,14 @@ function paintSuggestions(query,remote={artists:[],songs:[]},loading=false){
   if(score<20)return;
   const key=artistKey(name)+'|'+itemKind+(itemKind==='song'?'|'+artistKey(artist):'');
   const existing=map.get(key);
-  const candidate={name,kind:itemKind,origin,artist,track,trackId:String(track?.trackId||''),score:score+(origin==='catalog'?4:origin==='recent'?3:0)};
+  const candidate={name,kind:itemKind,origin,artist,track,trackId:String(track?.trackId||''),score:score+(origin==='catalog'?4:origin==='recent'?3:origin==='fuzzy'?5:0)};
   if(!existing||candidate.score>existing.score||(!existing.track&&track))map.set(key,candidate);
  };
  if(kind!=='song'){
   knownArtistHints.forEach(name=>insert(name,'hint','artist'));
   recentArtists().forEach(name=>insert(name,'recent','artist'));
   artistRows.forEach(x=>insert(String(x.artistName||x.name||''),'catalog','artist'));
+  fuzzyRows.forEach(x=>insert(String(x.artistName||x.name||''),'fuzzy','artist'));
  }
  if(kind!=='artist'){
   songRows.forEach(x=>{
@@ -127,13 +154,13 @@ function paintSuggestions(query,remote={artists:[],songs:[]},loading=false){
   if(o.kind!==lastKind){lastKind=o.kind;items+=`<div class="suggestion-group" aria-hidden="true">${o.kind==='song'?'MÚSICAS':'ARTISTAS'}</div>`;}
   const isCorrection=artistKey(o.name)!==artistKey(q)&&!artistKey(o.name).startsWith(artistKey(q));
   const subtitle=o.kind==='song'?o.artist:
-   o.origin==='catalog'?'Artista · catálogo musical':o.origin==='recent'?'Pesquisa recente':isCorrection?'Sugestão de grafia':'Artista sugerido';
+   o.origin==='catalog'?'Artista · catálogo musical':o.origin==='fuzzy'?'Nome aproximado · MusicBrainz':o.origin==='recent'?'Pesquisa recente':isCorrection?'Sugestão de grafia':'Artista sugerido';
   items+=`<button type="button" class="suggestion-item" role="option" id="suggest-${i}" aria-selected="false" data-suggest="${i}" tabindex="-1"><span class="suggestion-symbol" aria-hidden="true">${o.kind==='song'?'♫':'◉'}</span><span class="suggestion-copy"><strong>${safe(o.name)}</strong><small>${safe(subtitle)}</small></span><span class="suggestion-arrow" aria-hidden="true">↗</span></button>`;
  });
  const fallback=`<button type="button" class="suggestion-item suggestion-exact" data-suggest-exact="1" role="option" tabindex="-1"><span class="suggestion-symbol">⌕</span><span class="suggestion-copy"><strong>Buscar por “${safe(q)}”</strong><small>Pesquisar artistas e músicas</small></span><span class="suggestion-arrow">↵</span></button>`;
- const hasRemote=artistRows.length+songRows.length>0;
+ const hasRemote=artistRows.length+songRows.length+fuzzyRows.length>0;
  const selectedKey=previouslyHighlighted?previouslyHighlighted.kind+'|'+previouslyHighlighted.name+'|'+previouslyHighlighted.artist:null;
- suggestBox.innerHTML=`<div class="suggestion-top"><span>SUGESTÕES DE BUSCA</span><span class="suggestion-meta">${loading?'Consultando catálogo…':hasRemote?'Artistas e músicas':'Conforme você digita'}</span></div>${items}${fallback}`;
+ suggestBox.innerHTML=`<div class="suggestion-top"><span>SUGESTÕES DE BUSCA</span><span class="suggestion-meta">${loading?'Buscando nomes semelhantes…':fuzzyRows.length?'Sugestões de grafia':hasRemote?'Artistas e músicas':'Conforme você digita'}</span></div>${items}${fallback}`;
  suggestBox.hidden=false;$('#searchInput').setAttribute('aria-expanded','true');
  suggestHighlighted=selectedKey?suggestCandidates.findIndex(x=>x.kind+'|'+x.name+'|'+x.artist===selectedKey):-1;
  if(suggestHighlighted<0)$('#searchInput').removeAttribute('aria-activedescendant');
@@ -150,13 +177,19 @@ function requestAutocomplete(query,kind){
  const cached=suggestCache.get(key);
  if(cached&&Date.now()-cached.at<180000)return Promise.resolve(cached.rows);
  let result;
- if(window.ACLCatalog?.suggest){
+ if(window.ACLCatalog?.suggest && (kind!=='fuzzy'||window.ACLCatalog?.suggestFuzzy)){
   const id=++suggestCallbackId;
   result=new Promise((resolve,reject)=>{
-   const timer=setTimeout(()=>{suggestPending.delete(id);reject(Error('Sugestões excederam o tempo limite'))},11000);
+   const timer=setTimeout(()=>{suggestPending.delete(id);reject(Error('Sugestões excederam o tempo limite'))},kind==='fuzzy'?18000:11000);
    suggestPending.set(id,{resolve,reject,timer});
-   try{window.ACLCatalog.suggest(query,id,kind)}catch(e){suggestPending.delete(id);clearTimeout(timer);reject(e)}
+   try{if(kind==='fuzzy')window.ACLCatalog.suggestFuzzy(query,id);else window.ACLCatalog.suggest(query,id,kind)}catch(e){suggestPending.delete(id);clearTimeout(timer);reject(e)}
   });
+ }else if(kind==='fuzzy'){
+  const parts=normalizeArtistName(query).split(/\s+/).filter(t=>t.length>=2).slice(0,4);
+  const lucene=parts.map(t=>'artist:'+t+(t.length<=3?'*':'~1')).join(' AND ');
+  if(!lucene)return Promise.resolve([]);
+  const p=new URLSearchParams({query:lucene,fmt:'json',limit:'30'});
+  result=apiFetch('https://musicbrainz.org/ws/2/artist/?'+p.toString(),14000).then(x=>({results:(x.artists||[]).map(a=>({artistName:a.name||''}))}));
  }else{
   const p=new URLSearchParams({term:query,media:'music',entity:kind==='song'?'song':'musicArtist',country:'BR',limit:'40'});
   result=apiFetch('https://itunes.apple.com/search?'+p.toString(),11000);
@@ -171,22 +204,35 @@ function requestAutocomplete(query,kind){
 function onSearchTyping(value){
  clearTimeout(suggestTimer);const token=++suggestSerial;
  const query=value.trim();if(query.length<2){closeSuggestions();return;}
- const results={artists:[],songs:[]};
+ const results={artists:[],songs:[],fuzzy:[]};
  paintSuggestions(query,results,true);
  suggestTimer=setTimeout(()=>{
   const kinds=state.searchKind==='all'?['artist','song']:[state.searchKind];
   let remaining=kinds.length;
+  const isCurrent=()=>token===suggestSerial && $('#searchInput').value.trim()===query;
+  const tryFuzzy=()=>{
+   if(!isCurrent()||state.searchKind==='song'||query.length<4)return;
+   const list=[...knownArtistHints,...recentArtists(),...results.artists.map(a=>a.artistName||a.name||'')];
+   // Não consulta a fonte extra se já existe candidato relevante.
+   if(list.some(name=>artistRelevance(query,name)>=70))return;
+   paintSuggestions(query,results,true);
+   requestAutocomplete(query,'fuzzy').then(rows=>{
+    if(!isCurrent())return;
+    results.fuzzy=rows;
+   }).catch(()=>{}).finally(()=>{if(isCurrent())paintSuggestions(query,results,false)});
+  };
   for(const kind of kinds){
    requestAutocomplete(query,kind).then(rows=>{
-    if(token!==suggestSerial||$('#searchInput').value.trim()!==query)return;
+    if(!isCurrent())return;
     results[kind==='song'?'songs':'artists']=rows;
    }).catch(()=>{}).finally(()=>{
-    if(token!==suggestSerial||$('#searchInput').value.trim()!==query)return;
+    if(!isCurrent())return;
     remaining--;
     paintSuggestions(query,results,remaining>0);
+    if(remaining===0)tryFuzzy();
    });
   }
- },280);
+ },320);
 }
 function acceptSuggestion(i){
  const chosen=suggestCandidates[i];if(!chosen)return;
@@ -198,9 +244,14 @@ function acceptSuggestion(i){
 function searchWithInput(){
  const query=$('#searchInput').value.trim();
  if(suggestHighlighted>=0){acceptSuggestion(suggestHighlighted);return;}
- if(state.searchKind==='artist'&&query.length>=5){
-  const matches=suggestCandidates.filter(x=>x.kind==='artist'&&x.score>=100);
-  if(matches.length===1){acceptSuggestion(suggestCandidates.indexOf(matches[0]));return;}
+ // Corrige somente quando há UMA correspondência claramente melhor;
+ // nunca troca uma pesquisa ambígua nem uma música exata por outro artista.
+ if(state.searchKind!=='song'&&query.length>=5){
+  const matches=suggestCandidates.filter(x=>x.kind==='artist'&&x.score>=70).sort((a,b)=>b.score-a.score);
+  if(matches.length&&(matches.length===1||matches[0].score-matches[1].score>=13)){
+   const exactSong=suggestCandidates.some(x=>x.kind==='song'&&artistKey(x.name)===artistKey(query));
+   if(!exactSong){acceptSuggestion(suggestCandidates.indexOf(matches[0]));return;}
+  }
  }
  ++suggestSerial;clearTimeout(suggestTimer);closeSuggestions();
  persistArtistSearch(query);runSearch(query);
