@@ -53,7 +53,7 @@ final class YouTubeBridge {
                     if(tracks.length()>=60)break;
                 }
                 if(req==generation.get())deliver("__aclfutureYouTubeResponse",req,new JSONObject().put("results",tracks));
-            }catch(Exception ex){if(req==generation.get())deliver("__aclfutureYouTubeResponse",req,error("O YouTube Music não respondeu. Tente novamente ou use o catálogo mundial."));}
+            }catch(Exception ex){android.util.Log.e("ACL_Music_Search","Falha de busca nativa",ex);if(req==generation.get())deliver("__aclfutureYouTubeResponse",req,error("O YouTube Music não respondeu. Tente novamente. A busca global permanece disponível aqui."));}
         });
     }
     @JavascriptInterface public void resolve(String streamUrl,int req){
@@ -73,7 +73,7 @@ final class YouTubeBridge {
                 }
                 if(best.isEmpty())throw new IllegalStateException("Nenhum áudio compatível");
                 deliver("__aclfutureResolveResponse",req,new JSONObject().put("playUrl",best));
-            } catch(Exception ex){deliver("__aclfutureResolveResponse",req,error("Esta gravação não pode ser reproduzida pelo extrator. Abra no navegador."));}
+            } catch(Exception ex){android.util.Log.e("ACL_Music_Resolve","Falha ao obter URL de audio",ex);deliver("__aclfutureResolveResponse",req,error("Esta gravação não retornou áudio compatível. Tentando reprodutor incorporado."));}
         });
     }
     private JSONObject error(String m){JSONObject r=new JSONObject();try{r.put("error",m);}catch(Exception ignored){}return r;}

@@ -33,9 +33,9 @@
       <button class="nav-item" id="importSide"><span class="navico">♫</span><span>Importar MP3</span></button>
     </nav>
     <div class="side-bottom">
-      <div class="legal-note"><span class="pulse-dot"></span><span>Sem anúncios próprios.<br>Originais via navegador · offline local.</span></div>
+      <div class="legal-note"><span class="pulse-dot"></span><span>Sem anúncios próprios.<br>Reprodução integrada · offline local.</span></div>
       <button class="install-side" id="installSide">↓ &nbsp; Instalar no Android</button>
-      <div class="side-caption">ACLFUTURE MUSIC · versão 1.4 BETA</div>
+      <div class="side-caption">ACLFUTURE MUSIC · versão 1.5 BETA</div>
     </div>
   </aside>
 
@@ -52,7 +52,7 @@
 
     <div class="main-body" id="pageBody">
       <section class="hero" id="hero">
-        <div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span> ENCONTRE A GRAVAÇÃO CERTA</div><h1>Todas as bandas.<br><em>Todas as vozes.</em></h1><p>De Iron Maiden a artistas brasileiros, clássicos ou lançamentos. Encontre as gravações reais e abra a música completa no Brave ou navegador disponível.</p><div class="hero-actions"><button class="btn-primary" id="heroExplore"><span>▶</span> Buscar meu artista</button><button class="btn-outline" id="heroOffline">↓ &nbsp; Minha biblioteca offline</button></div></div>
+        <div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span> MÚSICAS ORIGINAIS • PLAYER INTEGRADO</div><h1>Sua música.<br><em>Seu momento.</em></h1><p>De rock nacional a pop, metal, samba ou jazz. Descubra a gravação original e toque sem sair do ACLFUTURE Music.</p><div class="hero-actions"><button class="btn-primary" id="heroExplore"><span>▶</span> Encontrar uma música</button><button class="btn-outline" id="heroOffline">↓ &nbsp; Minha biblioteca offline</button></div></div>
         <div class="hero-art" aria-hidden="true"><div class="vinyl-ring ring1"></div><div class="vinyl-ring ring2"></div><div class="vinyl-ring ring3"></div><div class="vinyl-core"><div class="music-glyph">♫</div></div><div class="glow-one"></div></div>
       </section>
 
@@ -65,13 +65,13 @@
         <button class="genre" data-genre="Racionais MC&#39;s" style="--genre-a:#4f2747;--genre-b:#ab5c87"><span class="genre-art">●</span><strong>Racionais MC’s</strong><small>Rap nacional</small></button>
       </div></section>
 
-      <section class="tracks-section"><div class="section-heading track-heading"><div><div class="section-kicker" id="trackKicker">SELEÇÃO DO DIA</div><h2 id="tracksTitle">Descubra músicas</h2><p id="trackSubtitle" class="section-subtitle">Catálogos de artistas independentes e licenças abertas.</p></div><div class="track-tools"><select id="searchKind" aria-label="Tipo de pesquisa"><option value="artist">Buscar artista</option><option value="song">Buscar música</option></select><select id="sourceSelect" aria-label="Filtrar catálogo"><option value="youtube" selected>YouTube Music (experimental)</option><option value="catalog">Catálogo mundial (abrir navegador)</option><option value="all">Músicas livres (todas)</option><option value="audius">Audius</option><option value="openverse">Openverse</option><option value="ftu">Free To Use</option><option value="local">Minha coleção</option></select><button id="shuffleAll" class="text-action">⇄ Aleatório</button><button id="youtubeSearch" class="text-action" title="Abrir pesquisa no YouTube Music pelo navegador">YouTube Music ↗</button></div></div>
-      <p class="catalog-disclaimer" id="catalogNotice">Busca global de gravações lançadas comercialmente, com artistas e capas corretos. Toque em uma faixa para buscar a versão completa no Brave ou navegador disponível. A busca não autoriza download das gravações comerciais; use a biblioteca offline para seus arquivos.</p>
+      <section class="tracks-section"><div class="section-heading track-heading"><div><div class="section-kicker" id="trackKicker">SELEÇÃO DO DIA</div><h2 id="tracksTitle">Descubra músicas</h2><p id="trackSubtitle" class="section-subtitle">Busque artistas, álbuns e faixas de diferentes países.</p></div><div class="track-tools"><select id="searchKind" aria-label="Tipo de pesquisa"><option value="artist">Buscar artista</option><option value="song">Buscar música</option></select><select id="sourceSelect" aria-label="Escolher origem das músicas"><option value="catalog" selected>Artistas originais</option><option value="youtube">YouTube Music</option><option value="all">Músicas livres (todas)</option><option value="audius">Audius</option><option value="openverse">Openverse</option><option value="ftu">Free To Use</option><option value="local">Minha coleção</option></select><button id="shuffleAll" class="text-action">⇄ Aleatório</button><button id="youtubeSearch" class="text-action" title="Buscar no YouTube Music dentro do app">YouTube Music</button></div></div>
+      <p class="catalog-disclaimer" id="catalogNotice">Busca global de gravações lançadas comercialmente, com artistas e capas corretos. Toque em uma faixa para reproduzir no próprio ACLFUTURE Music. A disponibilidade do áudio integral depende do serviço; downloads offline continuam limitados às fontes autorizadas.</p>
       <div class="table-head"><span></span><span>TÍTULO / ARTISTA</span><span class="hide-phone">ORIGEM</span><span class="hide-phone">DURAÇÃO</span><span></span></div>
       <div id="trackList" class="track-list" aria-live="polite"><div class="list-loading"><div class="loading-orb"></div> Buscando músicas disponíveis...</div></div>
       <div class="load-more-wrap"><button id="loadMore" class="btn-more" hidden>Carregar mais músicas <span>↓</span></button></div>
       </section>
-      <section class="info-strip"><span>✦</span><div><strong>Originais e músicas livres, cada um no seu lugar</strong><p>Busca por músicas e artistas via fontes abertas e um extrator experimental. Para faixas sem streaming, o aplicativo abre o YouTube Music no navegador. A biblioteca offline continua exclusiva de arquivos importados e fontes com download permitido.</p><p class="storage-notice"><span id="offlineStorageInfo">0 faixas armazenadas</span> · <span id="storagePersistence">Faça backup dos seus arquivos importados.</span></p></div></section>
+      <section class="info-strip" hidden><span>✦</span><div><strong>Suas músicas, em um só lugar</strong><p>Busque artistas do mundo inteiro e use o player integrado. Também é possível ouvir seus MP3 locais e músicas gratuitas autorizadas para uso offline.</p><p class="storage-notice"><span id="offlineStorageInfo">0 faixas armazenadas</span> · <span id="storagePersistence">Faça backup dos seus arquivos importados.</span></p></div></section>
     </div>
   </main>
 
@@ -82,6 +82,7 @@
   </div>
   <nav class="bottom-nav" aria-label="Navegação rápida"><button data-view="inicio" class="selected"><span>⌂</span>Início</button><button data-view="buscar"><span>⌕</span>Buscar</button><button data-view="favoritos"><span>♡</span>Favoritas</button><button data-view="offline"><span>↓</span>Offline</button></nav>
   <audio id="audio" preload="metadata" playsinline></audio>
+  <div id="embeddedPanel" class="embedded-panel" hidden><div class="embedded-shell"><div class="embedded-head"><span>▶ REPRODUÇÃO INTEGRADA</span><button id="embeddedClose" aria-label="Fechar reprodutor">×</button></div><iframe id="embeddedFrame" title="Vídeo musical incorporado" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen referrerpolicy="strict-origin-when-cross-origin"></iframe></div></div>
   <input type="file" id="fileInput" accept="audio/*,.mp3,.ogg,.m4a,.wav,.flac" multiple hidden>
   <div id="overlay" class="overlay" hidden></div>
   <div id="toast" class="toast" role="status" aria-live="polite"></div>

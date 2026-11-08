@@ -105,3 +105,191 @@
 
 /* Experimental native streaming selection */
 @media(max-width:470px){.track-tools #sourceSelect{flex:1.4}}
+
+/* ACLFUTURE Music 1.5 — visual system: aurora plum / electric coral. 
+   Official ACLFUTURE assets are kept intact. */
+:root{
+  color:#fff9ff;background:#090719;
+  --bg:#090719;--side:#100b25;--panel:#1b1531;--panel2:#271c42;
+  --line:rgba(221,206,255,.16);--sub:#baabd2;
+  --brand:#ff76af;--brand2:#b86fff;--white:#fff9ff;
+}
+body{background:#090719;color:#fff9ff}
+.main{background:radial-gradient(ellipse at 78% 4%,rgba(145,53,199,.19),transparent 36%),radial-gradient(ellipse at 9% 64%,rgba(49,26,110,.2),transparent 50%),#0d0a1f}
+.sidebar{background:linear-gradient(165deg,#201139 0%,#110b25 50%,#0c0a1c 100%);border-right:1px solid rgba(223,186,255,.16)}
+.brand-mark{background:#221a38;border:1px solid #675080;border-radius:13px}
+.brand-txt small{color:#ff8dba}
+.sidebar-label{color:#9683b5}
+.nav-item{color:#c1b2d7;border:1px solid transparent}
+.nav-item.selected{color:#ffc0da;border:1px solid rgba(255,126,184,.21);background:linear-gradient(110deg,rgba(255,105,166,.21),rgba(109,57,216,.1))}
+.nav-item:hover{color:#fff;background:#2a1d48}
+.nav-count{background:rgba(255,138,182,.15);color:#ffadd0}
+.legal-note{background:rgba(187,100,229,.08);color:#bdb0d1;border:1px solid rgba(215,157,244,.16)}
+.pulse-dot,.eyebrow-dot{background:#ff93aa;box-shadow:0 0 13px rgba(255,114,170,.6)}
+.side-caption{color:#9886b4}
+.install-side{border-color:rgba(240,123,201,.32);color:#ff8fbc}
+.topbar{background:linear-gradient(90deg,rgba(32,17,53,.9),rgba(18,12,36,.94));border-bottom:1px solid rgba(219,187,255,.14)}
+.searchbar{border:1px solid rgba(195,153,255,.24);background:#241935;border-radius:15px;height:47px;box-shadow:inset 0 1px rgba(255,255,255,.055)}
+.searchbar:focus-within{border-color:#fe85bf;box-shadow:0 0 0 3px rgba(255,112,187,.09)}
+.searchbar svg{stroke:#ff96bd;width:20px;height:20px}
+.searchbar input{color:#fff;font-size:13px}
+.searchbar input::placeholder{color:#a99abf}
+.search-shortcut{border-color:#655078;color:#c2b0d8}
+.user-avatar{background:linear-gradient(135deg,#f06caa,#814ef6);border:1px solid #ffb5e2;color:#fff;box-shadow:0 4px 22px rgba(179,69,231,.25)}
+.main-body{scrollbar-color:#583574 transparent}
+.hero{min-height:284px;background:radial-gradient(circle at 88% 15%,rgba(253,132,178,.52),transparent 41%),linear-gradient(115deg,#44207a,#752c84 59%,#bb438e);border:1px solid rgba(255,191,244,.26);box-shadow:0 16px 42px rgba(60,16,94,.25);border-radius:24px}
+.hero:after{width:520px;height:320px;left:auto;right:-100px;bottom:-190px;background:rgba(246,148,82,.29);filter:blur(65px)}
+.hero h1{color:#fff;font-size:clamp(34px,4vw,60px);letter-spacing:-.055em;text-shadow:0 2px 20px rgba(28,3,60,.16)}
+.hero h1 em{color:#ffd090;font-style:normal}
+.hero p{color:#f8e6f7;max-width:470px;font-size:13px}
+.hero .eyebrow{color:#ffe1a5;font-size:9px}
+.hero-art{right:-28px;top:-90px;opacity:.77;filter:drop-shadow(0 8px 30px rgba(23,0,44,.36))}
+.vinyl-ring{border:2px solid rgba(255,213,235,.32);background:repeating-radial-gradient(circle at center,transparent 0px, transparent 9px,rgba(255,229,239,.055) 10px,transparent 12px)}
+.ring2{border-color:rgba(255,160,229,.22)}
+.ring3{border-color:rgba(255,207,132,.33)}
+.vinyl-core{background:radial-gradient(circle at 26% 25%,#ffe0a0,#ff859e 40%,#e34e98 80%);border:5px solid rgba(113,24,119,.48);box-shadow:0 0 0 16px rgba(206,67,169,.18)}
+.music-glyph{color:#5a2364}
+.btn-primary{background:linear-gradient(110deg,#ffdfae,#ff94ae);color:#391a45;border:none;box-shadow:0 7px 22px rgba(248,121,171,.24);font-size:12px}
+.btn-primary:hover{background:linear-gradient(110deg,#ffedce,#ffb5c8);color:#391a45}
+.btn-outline{color:#fff;border:1px solid rgba(255,225,248,.55);background:rgba(25,7,66,.18);font-size:11px}
+.btn-outline:hover{background:rgba(255,255,255,.12)}
+.section-kicker{color:#ff8fb9}
+.section-heading h2{color:#fff7ff;font-size:24px}
+.section-subtitle,.muted-sm{color:#b7a7cc}
+.genres-section{margin-top:28px}
+.genre-grid{gap:11px}
+.genre{background:linear-gradient(134deg,var(--genre-a),var(--genre-b));border:1px solid rgba(255,235,255,.19);box-shadow:inset 0 1px 0 rgba(255,255,255,.12),0 6px 18px rgba(18,5,47,.18);border-radius:16px}
+.genre:nth-child(1){background:linear-gradient(133deg,#5d2ca7,#d14f98)}
+.genre:nth-child(2){background:linear-gradient(128deg,#752d40,#e75f6b)}
+.genre:nth-child(3){background:linear-gradient(128deg,#084c9b,#2d9bda)}
+.genre:nth-child(4){background:linear-gradient(128deg,#855123,#ec9f4b)}
+.genre:nth-child(5){background:linear-gradient(128deg,#24586d,#6a88d9)}
+.genre:nth-child(6){background:linear-gradient(128deg,#4c277b,#af5dad)}
+.genre:hover{border-color:#ffd1eb;filter:brightness(1.11)}
+.genre strong{font-size:14px;color:#fff;text-shadow:0 1px 9px rgba(0,0,0,.18)}
+.genre small{font-size:10px;color:#f1dced}
+.genre-art{opacity:.23;color:#fff}
+.tracks-section{margin-top:33px}
+.track-tools select{background:#221938;color:#f0e4fb;border:1px solid #59416e;border-radius:12px;font-size:11px;padding:10px 10px}
+.text-action{color:#ff9ac3;font-size:11px}
+#youtubeSearch{border-radius:20px;border:1px solid rgba(249,127,194,.35);background:rgba(226,89,164,.08);padding:8px 11px}
+.catalog-disclaimer{background:rgba(126,81,187,.09)!important;border:1px solid rgba(200,146,237,.16)!important;color:#c9badd!important;border-radius:11px!important;font-size:11px!important;line-height:1.55!important;padding:10px 13px!important;margin:9px 0 16px!important}
+.table-head{border-bottom:1px solid rgba(216,177,255,.14);color:#9c87b8}
+.track-row{border:1px solid transparent;border-bottom-color:rgba(202,169,245,.08);border-radius:12px;margin-bottom:4px;min-height:72px}
+.track-row:hover,.track-row:focus-within{background:rgba(160,81,227,.13);border-color:rgba(196,119,255,.17)}
+.track-row.active{background:linear-gradient(100deg,rgba(235,103,181,.18),rgba(121,61,210,.11));border-color:rgba(253,134,199,.23)}
+.track-row.active .song-name{color:#ffc5dd}
+.track-index{color:#9c86b7}
+.album-cover{background:linear-gradient(145deg,#b34fba,#60399e);border:1px solid rgba(253,217,252,.17);border-radius:9px;height:48px;width:48px}
+.song-name{color:#fff8ff;font-weight:770;font-size:12px}
+.song-artist{color:#a99cbd;font-size:10px}
+.source-tag{border-color:rgba(193,137,235,.25);color:#d9bcea;background:rgba(150,78,193,.07)}
+.track-duration{color:#b1a3c5}
+.row-actions button{color:#b29abf}
+.row-actions button:hover,.row-actions button.liked{color:#ff8ab5}
+.row-actions button.official-link{min-width:36px;height:33px;border-radius:13px;background:linear-gradient(135deg,#e977a6,#a864f4);font-size:14px;color:#220e35;margin:0 4px;box-shadow:0 3px 10px rgba(202,90,189,.2)}
+.row-actions button.official-link:hover{color:#170a2d;background:#ffb3d2}
+.empty-state{border:1px solid rgba(177,123,239,.16);background:linear-gradient(155deg,rgba(74,42,111,.18),rgba(22,16,47,.1));border-radius:20px;padding:39px 16px}
+.empty-state .empty-icon{color:#f79cc5}
+.empty-state strong{color:#fff}
+.empty-state p{color:#b4a7c9}
+.empty-state button{color:#ffd5ed;background:#372147;border-color:#925b9e}
+.list-loading{color:#c1aeca}
+.loading-orb{border-color:#63477a;border-top-color:#ff8caf}
+.info-strip[hidden]{display:none}
+.player{background:linear-gradient(115deg,#231431,#170e2c 56%,#1e1237);border-top:1px solid rgba(255,165,218,.25);box-shadow:0 -9px 39px rgba(17,3,33,.48)}
+.player-cover{background:linear-gradient(145deg,#f379b4,#804fea);border-radius:11px;color:#fff;box-shadow:0 5px 17px rgba(188,65,176,.16)}
+.player-meta strong{color:#fff;font-size:12px}
+.player-meta span{color:#baa9d1}
+.player-like{color:#c5aaca}
+.player-like.active{color:#ff7fb4}
+.ctl{color:#fff3ff}
+.ctl:hover,.ctl.on,.ctl.secondary.on{color:#ffa5c7}
+.ctl.secondary{color:#b698c6}
+.ctl.big-play{background:linear-gradient(145deg,#ffc4c8,#ffa4a9 55%,#f6cf83);color:#331346;box-shadow:0 4px 18px rgba(255,141,163,.4);width:42px;height:42px;font-size:18px}
+.ctl.big-play:hover{background:#ffe2c3}
+.progress-controls{color:#bbaaD2}
+.player input[type=range]{accent-color:#ff8bae}
+.player-mobile-more{color:#e3badf}
+.bottom-nav{background:#170f2b;border-top:1px solid rgba(219,171,255,.16)}
+.bottom-nav button{color:#ad96c3}
+.bottom-nav button.selected{color:#ff92bc}
+.toast{background:#382346;border:1px solid #b96a9e;color:#ffe0f0;box-shadow:0 12px 50px rgba(21,3,29,.55)}
+.modal-box{background:linear-gradient(135deg,#251838,#17122e);border:1px solid #6e4c83}
+.modal-row{background:#302040;border-color:#6b497d;color:#ffe6f6}
+.modal-row:hover{background:#3d2852}
+.modal-copy{color:#c7b9d5}
+.modal-input{background:#160f2b;border-color:#6f5180;color:#fff}
+.modal-btn{background:linear-gradient(110deg,#ffc4a5,#fa7caf);color:#411a48}
+.modal-link{color:#ff97c3}
+.playlist-card{background:linear-gradient(130deg,#312046,#221734);border-color:#65457e}
+.playlist-card:hover{background:#3c2758}
+.playlist-card-icon{background:linear-gradient(135deg,#e775aa,#7950ca);color:#fff}
+.pill{background:#522b5c;color:#ffd4eb}
+.embedded-panel{position:fixed;inset:0;z-index:99;background:rgba(5,3,16,.9);display:grid;place-items:center;padding:14px}
+.embedded-panel[hidden]{display:none}
+.embedded-shell{background:#24153d;border:1px solid #8b5aa7;border-radius:20px;max-width:850px;width:100%;overflow:hidden;padding:13px;box-shadow:0 24px 100px rgba(0,0,0,.6)}
+.embedded-head{color:#ffd5e9;font-size:12px;font-weight:800;letter-spacing:.08em;padding:8px 2px 13px;display:flex;align-items:center;justify-content:space-between}
+.embedded-head button{color:#fff;background:#563c6d;border:0;border-radius:50%;height:35px;width:35px;font-size:20px}
+.embedded-shell iframe{border:0;background:#000;display:block;aspect-ratio:16/9;width:100%;min-height:200px;border-radius:12px}
+@media(max-width:780px){
+ .main{background:radial-gradient(circle at 65% 1%,rgba(153,67,214,.2),transparent 29%),#0d0a1f}
+ .sidebar{background:linear-gradient(150deg,#28143c,#0f0a25)}
+ .topbar{background:#180f2c}
+ .topbar .mobile-brand{font-size:13px;color:#fff}
+ .topbar .mobile-brand b{color:#ff99bb}
+ .bottom-nav{background:#1b112d}
+ .player{background:linear-gradient(115deg,#271735,#171128)}
+ .track-row{min-height:74px}
+ .genre{height:115px}
+ .genre-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .hero-art{right:-170px;opacity:.5}
+}
+@media(max-width:470px){
+ .topbar{height:112px;flex-basis:112px;padding:9px 15px 12px}
+ .mobile-brand{height:39px;align-items:center;gap:8px}
+ .mobile-brand-logo{height:29px;width:29px;border-radius:7px}
+ .searchbar{height:43px;border-radius:13px}
+ .main-body{padding:18px 15px 194px}
+ .hero{min-height:279px;border-radius:20px}
+ .hero-content{padding:25px 19px;width:100%}
+ .hero h1{font-size:37px;line-height:1.12;margin:14px 0 9px}
+ .hero p{font-size:11px;max-width:290px;line-height:1.62;margin-bottom:18px}
+ .hero-actions{gap:7px}
+ .btn-primary{padding:11px 14px}
+ .btn-outline{padding:11px 13px}
+ .genres-section{margin-top:25px}
+ .section-heading h2{font-size:21px}
+ .genre-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+ .genre{height:95px;border-radius:14px;padding:15px 14px}
+ .genre strong{font-size:14px}
+ .genre-art{font-size:80px;right:2px;opacity:.19}
+ .genre small{font-size:10px}
+ .tracks-section{margin-top:31px}
+ .track-heading h2{font-size:22px}
+ .track-tools{display:grid;grid-template-columns:minmax(90px,1fr) minmax(140px,1.4fr);column-gap:8px;row-gap:8px}
+ .track-tools select{max-width:none;min-width:0;width:100%;height:39px;background:#251b39;font-size:11px}
+ .track-tools #shuffleAll{justify-self:start}
+ .track-tools #youtubeSearch{justify-self:end}
+ .catalog-disclaimer{font-size:10px!important}
+ .song-name{font-size:12px}
+ .song-artist{font-size:10px}
+ .album-cover{height:45px;width:45px}
+ .track-row{grid-template-columns:19px minmax(0,1fr) 0 93px;gap:4px;padding:8px 4px}
+ .track-title-cell{gap:10px}
+ .row-actions{gap:0}
+ .row-actions button{min-width:28px}
+ .row-actions button.official-link{min-width:33px;width:33px;margin:0 1px}
+ .player{height:100px;bottom:66px;padding:10px 11px 7px;grid-template-columns:minmax(0,1fr) 117px;row-gap:3px}
+ .player-cover{height:43px;width:43px}
+ .player-meta strong{font-size:11px}
+ .player-meta span{font-size:9px}
+ .ctl.big-play{width:36px;height:36px;font-size:15px}
+ .play-controls{gap:5px}
+ .player-mobile-more{color:#ffd0e7}
+ .bottom-nav{height:67px}
+ .bottom-nav button span{font-size:23px}
+ .bottom-nav button.selected{font-weight:800}
+ .toast{bottom:182px}
+}
+@media(max-width:340px){.hero h1{font-size:31px}.genre strong{font-size:12px}.track-row{grid-template-columns:17px minmax(0,1fr) 0 86px}.row-actions button.official-link{min-width:28px;width:28px}}

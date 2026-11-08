@@ -3,25 +3,22 @@ android {
     namespace 'com.aclfuture.music'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.aclfuture.music.preview14'
+        applicationId 'com.aclfuture.music.preview15'
         minSdk 26
         targetSdk 34
-        versionCode 14
-        versionName '1.4.0-beta'
+        versionCode 15
+        versionName '1.5.0-beta'
     }
     compileOptions {
         coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
-    buildTypes {
-        release {
-            minifyEnabled false
-        }
-    }
+    buildTypes { release { minifyEnabled false } }
 }
-
 dependencies {
     implementation 'com.github.TeamNewPipe:NewPipeExtractor:v0.27.0'
+    implementation 'androidx.media3:media3-exoplayer:1.5.1'
     coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.1.4'
+    testImplementation 'junit:junit:4.13.2'
 }

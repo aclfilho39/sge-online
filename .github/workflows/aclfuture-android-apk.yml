@@ -1,4 +1,4 @@
-name: ACLFUTURE Music 1.4 - compilar e validar APK
+name: ACLFUTURE Music 1.5 — APK com player interno
 on:
   workflow_dispatch:
   push:
@@ -8,6 +8,7 @@ on:
 jobs:
   apk:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     permissions:
       contents: write
     steps:
@@ -24,7 +25,7 @@ jobs:
       - name: Preparar Android SDK
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Compilar APK
+      - name: Compilar APK Android
         working-directory: android-studio
         run: gradle --no-daemon :app:assembleDebug
       - name: Android Lint
@@ -33,32 +34,40 @@ jobs:
       - name: Verificar assinatura e manifesto
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android-studio/app/build/outputs/apk/debug/app-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-studio/app/build/outputs/apk/debug/app-debug.apk | head -25
-      - name: Consultar catálogo real (teste de conectividade)
-        continue-on-error: true
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-studio/app/build/outputs/apk/debug/app-debug.apk | head -23
+      - name: Testar catálogo mundial com respostas reais
         run: |
           python3 - <<'PY'
-          import json, urllib.request
-          url='https://itunes.apple.com/search?term=Iron%20Maiden&media=music&entity=song&attribute=artistTerm&country=BR&limit=25'
-          with urllib.request.urlopen(url,timeout=20) as response:
-              songs=json.load(response).get('results',[])
-          originals=[x for x in songs if x.get('artistName','').lower()=='iron maiden']
-          print('Faixas com artista creditado Iron Maiden:',len(originals))
-          assert originals
+          import json,urllib.request,urllib.parse
+          for artist in ['Engenheiros do Hawaii','Iron Maiden','Queen','Taylor Swift']:
+              p=urllib.parse.urlencode(dict(term=artist,media='music',entity='song',attribute='artistTerm',country='BR',limit='100'))
+              try:
+                  with urllib.request.urlopen('https://itunes.apple.com/search?'+p,timeout=20) as r:
+                      records=json.load(r)['results']
+                  found=[x for x in records if x.get('artistName','').lower()==artist.lower()]
+                  print('CATALOGO:',artist,'originais creditados:',len(found))
+                  if not found: raise RuntimeError('Artista ausente no catalogo: '+artist)
+              except Exception as e:
+                  print('FALHA CATÁLOGO:',artist,str(e));raise
           PY
-      - uses: actions/upload-artifact@v4
+      - name: Testar busca e extração de áudio real (não bloqueante)
+        working-directory: android-studio
+        continue-on-error: true
+        run: gradle --no-daemon :app:testDebugUnitTest --tests com.aclfuture.music.ExtractorLiveSmokeTest --info
+      - name: Publicar artefato APK
+        uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-v1.4-EXPERIMENTAL
+          name: ACLFUTURE-Music-Android-1.5-APK
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publicar APK de teste
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-4-experimental'
+      - name: Publicar APK para download via navegador Android
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-5-player-interno'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_Android_1.4_EXPERIMENTAL.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_1.5_PLAYER_INTERNO.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f release/ACLFUTURE_Music_Android_1.4_EXPERIMENTAL.apk
+          git add -f release/ACLFUTURE_Music_1.5_PLAYER_INTERNO.apk
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish ACLFUTURE Music Android 1.4 experimental APK [skip ci]'
-            git push origin HEAD:refs/heads/aclfuture-music-android-1-4-experimental
+            git commit -m 'Publish ACLFUTURE Music 1.5 player interno APK [skip ci]'
+            git push origin HEAD:refs/heads/aclfuture-music-android-1-5-player-interno
           fi

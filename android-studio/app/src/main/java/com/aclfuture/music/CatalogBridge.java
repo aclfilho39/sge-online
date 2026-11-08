@@ -99,36 +99,5 @@ final class CatalogBridge {
         });
     }
 
-    @JavascriptInterface
-    public void openOriginal(String artist,String title) {
-        if(artist==null || title==null || artist.length()>150 || title.length()>200) return;
-        String query=artist.trim()+" "+title.trim()+" official audio";
-        openMusicSearch(query);
-    }
-
-    @JavascriptInterface
-    public void openSearch(String query) {
-        if(query==null || query.length()>250) return;
-        openMusicSearch(query);
-    }
-
-    private void openMusicSearch(String query) {
-        final String url="https://music.youtube.com/search?q=" + Uri.encode(query);
-        activity.runOnUiThread(() -> {
-            Intent brave = new Intent(Intent.ACTION_VIEW,Uri.parse(url));
-            brave.addCategory(Intent.CATEGORY_BROWSABLE);
-            brave.setPackage("com.brave.browser");
-            try {
-                activity.startActivity(brave);
-            } catch (ActivityNotFoundException | SecurityException e) {
-                Intent fallback = new Intent(Intent.ACTION_VIEW,Uri.parse(url));
-                fallback.addCategory(Intent.CATEGORY_BROWSABLE);
-                try { activity.startActivity(fallback); }
-                catch (ActivityNotFoundException ignored) { android.widget.Toast.makeText(activity,
-                    "Instale um navegador para ouvir a música",android.widget.Toast.LENGTH_LONG).show(); }
-            }
-        });
-    }
-
     void close(){pool.shutdownNow();}
 }
