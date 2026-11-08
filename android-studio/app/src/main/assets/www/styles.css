@@ -32,3 +32,73 @@
 .mobile-brand-logo{width:25px;height:25px;object-fit:contain;flex:none;border-radius:5px}
 @media(max-width:470px){.mobile-brand{gap:8px}.mobile-brand-logo{width:23px;height:23px}}
 @media(max-width:359px){.mobile-brand{gap:6px}.mobile-brand span{font-size:11px}}
+
+/* Catálogo mundial: filtros legíveis e indicação clara de escuta externa. */
+.catalog-disclaimer{font-size:11px;line-height:1.6;color:#a5b8ba;border:1px solid rgba(105,239,190,.13);border-radius:10px;background:rgba(83,165,136,.06);padding:12px 15px;margin:8px 0 16px}
+.catalog-row .source-tag{color:#aee8d2;border-color:rgba(105,239,190,.25)}
+.catalog-row .row-actions button[data-official]{color:var(--brand);font-weight:800;font-size:20px}
+#searchKind{min-width:126px}
+@media(max-width:780px){.track-tools{display:flex;flex-wrap:wrap;gap:7px}#searchKind{min-width:110px}.catalog-disclaimer{font-size:10px;margin:10px 0}}
+
+/* ACLFUTURE Music 1.3 – identidade original preservada, interface editorial escura */
+:root{--brand:#7decc6;--brand2:#3fc49e;--white:#f5f8f7;--sub:#9aadaa}
+.main{background:linear-gradient(170deg,#0c1216 0%,#0a1014 82%)}
+.main-body{scroll-behavior:smooth}
+.hero{background:radial-gradient(ellipse at 78% 0%,rgba(63,189,157,.25) 0%,transparent 47%),linear-gradient(115deg,#143331,#0b1b23 72%);border-radius:20px;border:1px solid rgba(149,232,203,.13)}
+.hero-art{opacity:.65;right:-20px;top:-100px}
+.hero h1{font-weight:850;letter-spacing:-.058em;max-width:650px}
+.hero p{font-size:13px;line-height:1.65;max-width:500px}
+.btn-primary{font-size:12px;padding:13px 19px;box-shadow:0 5px 23px rgba(48,185,134,.12)}
+.genre-grid{gap:10px}
+.genre{background:linear-gradient(140deg,#17262a,#152025);border:1px solid #25383b;box-shadow:none;border-radius:13px}
+.genre:nth-child(2){background:linear-gradient(140deg,#25302c,#152026)}
+.genre:hover{border-color:#5ea88e;background:#203a36;filter:none}
+.genre-art{right:1px;bottom:-28px;font-size:85px;opacity:.24}
+.genre strong{font-size:13px;line-height:1.25;letter-spacing:-.02em}
+.genre small{font-size:10px;opacity:.76}
+.section-heading h2{font-size:24px}
+.track-row{border-radius:11px;margin:2px 0;min-height:69px}
+.track-row:hover{background:#17272a}
+.album-cover{border-radius:9px}
+.track-tools select{border-radius:11px;background:#141f23;border-color:#2c3b41}
+.catalog-disclaimer{background:#111f20;border:1px solid #27433c;color:#a6c7bd;font-size:11px;line-height:1.55;border-radius:10px}
+.catalog-row .official-link{display:grid;place-items:center;color:#10281e;background:#7decc6;border-radius:50%;width:29px;height:29px;min-width:29px;min-height:29px;font-size:17px}
+.catalog-row .official-link:hover{color:#10281e;background:#a5f6d4}
+.player{background:#10191d;box-shadow:0 -6px 32px rgba(0,0,0,.22)}
+@media (max-width:780px){
+  .main-body{padding-top:14px}
+  .hero{min-height:250px}
+  .hero h1{font-size:36px}
+  .hero-art{opacity:.24;right:-192px;top:-105px}
+  .genre{height:95px;padding:13px 11px}
+  .genre strong{font-size:12px}
+  .genre-art{font-size:72px}
+}
+@media(max-width:470px){
+  .topbar{background:#0c1519;border-color:rgba(231,248,242,.09)}
+  .searchbar{height:43px;background:#162327;border-radius:12px;border-color:#314744}
+  .hero{min-height:243px}
+  .hero-content{padding:21px 19px}
+  .hero h1{font-size:32px;margin:12px 0}
+  .hero p{font-size:11px;max-width:265px;line-height:1.65}
+  .hero-actions{gap:7px}
+  .btn-primary,.btn-outline{padding:10px 13px;font-size:10px}
+  .genres-section{margin-top:25px}
+  .section-heading h2{font-size:21px}
+  .genre-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+  .genre{height:82px;padding:12px}
+  .genre strong{font-size:13px}
+  .genre-art{font-size:70px;bottom:-24px;right:-2px}
+  .tracks-section{margin-top:31px}
+  .track-tools{justify-content:initial;gap:7px}
+  .track-tools #searchKind{flex:1;max-width:none;min-width:0}
+  .track-tools #sourceSelect{flex:1.3;max-width:none;min-width:0}
+  .track-tools .text-action{padding:8px 6px;font-size:10px}
+  .table-head,.track-row{grid-template-columns:15px minmax(118px,1fr) 0 91px}
+  .track-row{padding:6px 0;min-height:64px}
+  .album-cover{width:43px;height:43px}
+  .song-name{font-size:11.5px}
+  .song-artist{font-size:9.5px}
+  .row-actions button{min-width:30px}
+  .catalog-disclaimer{font-size:10px}
+}

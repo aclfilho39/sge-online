@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
   <meta name="theme-color" content="#0b1013">
-  <meta name="description" content="ACLFUTURE Music: descubra músicas gratuitas em catálogos legais, organize playlists e ouça offline as faixas permitidas.">
+  <meta name="description" content="ACLFUTURE Music: busque gravações originais de bandas e cantores, salve favoritos e ouça suas músicas locais offline.">
   <meta name="color-scheme" content="dark">
   <link rel="icon" type="image/png" href="assets/icon-192.png">
   <link rel="apple-touch-icon" href="assets/icon-192.png">
@@ -33,9 +33,9 @@
       <button class="nav-item" id="importSide"><span class="navico">♫</span><span>Importar MP3</span></button>
     </nav>
     <div class="side-bottom">
-      <div class="legal-note"><span class="pulse-dot"></span><span>Sem anúncios no aplicativo.<br>Fontes gratuitas e autorizadas.</span></div>
+      <div class="legal-note"><span class="pulse-dot"></span><span>Sem anúncios próprios.<br>Originais via navegador · offline local.</span></div>
       <button class="install-side" id="installSide">↓ &nbsp; Instalar no Android</button>
-      <div class="side-caption">ACLFUTURE MUSIC · versão 1.2</div>
+      <div class="side-caption">ACLFUTURE MUSIC · versão 1.3</div>
     </div>
   </aside>
 
@@ -44,7 +44,7 @@
       <div class="mobile-brand"><button class="mobile-menu" id="menuBtn" aria-label="Abrir menu">☰</button><img class="mobile-brand-logo" src="assets/brand-mark.png" alt="Símbolo oficial ACLFUTURE"><span>ACLFUTURE <b>MUSIC</b></span></div>
       <form class="searchbar" id="searchForm" role="search">
         <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="10.8" cy="10.8" r="6.8"/><path d="m16 16 5 5"/></svg>
-        <input id="searchInput" type="search" autocomplete="off" placeholder="Música, artista ou estilo..." aria-label="Pesquisar músicas">
+        <input id="searchInput" type="search" autocomplete="off" placeholder="Digite o nome da banda ou cantor..." aria-label="Pesquisar músicas">
         <span class="search-shortcut">↵</span>
       </form>
       <div class="top-actions"><span class="status-online" id="netStatus"><span></span> ONLINE</span><button class="icon-action" id="installBtn" title="Instalar" aria-label="Instalar aplicativo">↓</button><button class="user-avatar" id="helpBtn" aria-label="Sobre o aplicativo">AC</button></div>
@@ -52,25 +52,26 @@
 
     <div class="main-body" id="pageBody">
       <section class="hero" id="hero">
-        <div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span> EXPERIÊNCIA MUSICAL LIVRE</div><h1>O som que você ama.<br><em>Do seu jeito.</em></h1><p>Descubra artistas de catálogos gratuitos, salve suas favoritas e leve músicas autorizadas com você, até sem internet.</p><div class="hero-actions"><button class="btn-primary" id="heroExplore"><span>▶</span> Explorar músicas</button><button class="btn-outline" id="heroOffline">↓ &nbsp; Minha biblioteca offline</button></div></div>
+        <div class="hero-content"><div class="eyebrow"><span class="eyebrow-dot"></span> ENCONTRE A GRAVAÇÃO CERTA</div><h1>Todas as bandas.<br><em>Todas as vozes.</em></h1><p>De Iron Maiden a artistas brasileiros, clássicos ou lançamentos. Encontre as gravações reais e abra a música completa no Brave ou navegador disponível.</p><div class="hero-actions"><button class="btn-primary" id="heroExplore"><span>▶</span> Buscar meu artista</button><button class="btn-outline" id="heroOffline">↓ &nbsp; Minha biblioteca offline</button></div></div>
         <div class="hero-art" aria-hidden="true"><div class="vinyl-ring ring1"></div><div class="vinyl-ring ring2"></div><div class="vinyl-ring ring3"></div><div class="vinyl-core"><div class="music-glyph">♫</div></div><div class="glow-one"></div></div>
       </section>
 
-      <section class="genres-section" id="genresSection"><div class="section-heading"><div><div class="section-kicker">EXPLORE NOVOS SONS</div><h2>Qual é a vibe de hoje?</h2></div><span class="muted-sm">Selecione um estilo</span></div><div class="genre-grid">
-        <button class="genre" data-genre="pop" style="--genre-a:#5a2b96;--genre-b:#c149ac"><span class="genre-art">♫</span><strong>Pop</strong><small>Para cantar junto</small></button>
-        <button class="genre" data-genre="rock" style="--genre-a:#844124;--genre-b:#cc7044"><span class="genre-art">ϟ</span><strong>Rock</strong><small>Energia total</small></button>
-        <button class="genre" data-genre="electronic" style="--genre-a:#064d65;--genre-b:#00a7ad"><span class="genre-art">◈</span><strong>Eletrônica</strong><small>Sinta a batida</small></button>
-        <button class="genre" data-genre="jazz" style="--genre-a:#573b12;--genre-b:#c39b40"><span class="genre-art">♬</span><strong>Jazz</strong><small>Som sofisticado</small></button>
-        <button class="genre" data-genre="classical" style="--genre-a:#355143;--genre-b:#6cac83"><span class="genre-art">♩</span><strong>Clássica</strong><small>Para desacelerar</small></button>
-        <button class="genre" data-genre="hip hop" style="--genre-a:#4f2747;--genre-b:#ab5c87"><span class="genre-art">●</span><strong>Hip-hop</strong><small>Rima e ritmo</small></button>
+      <section class="genres-section" id="genresSection"><div class="section-heading"><div><div class="section-kicker">EXEMPLOS DE BUSCA</div><h2>Qual artista você quer ouvir?</h2></div><span class="muted-sm">Toque para pesquisar</span></div><div class="genre-grid">
+        <button class="genre" data-genre="Taylor Swift" style="--genre-a:#5a2b96;--genre-b:#c149ac"><span class="genre-art">♫</span><strong>Taylor Swift</strong><small>Pop</small></button>
+        <button class="genre" data-genre="Iron Maiden" style="--genre-a:#844124;--genre-b:#cc7044"><span class="genre-art">ϟ</span><strong>Iron Maiden</strong><small>Heavy metal</small></button>
+        <button class="genre" data-genre="Daft Punk" style="--genre-a:#064d65;--genre-b:#00a7ad"><span class="genre-art">◈</span><strong>Daft Punk</strong><small>Eletrônica</small></button>
+        <button class="genre" data-genre="Miles Davis" style="--genre-a:#573b12;--genre-b:#c39b40"><span class="genre-art">♬</span><strong>Miles Davis</strong><small>Jazz</small></button>
+        <button class="genre" data-genre="Ludovico Einaudi" style="--genre-a:#355143;--genre-b:#6cac83"><span class="genre-art">♩</span><strong>Ludovico Einaudi</strong><small>Instrumental</small></button>
+        <button class="genre" data-genre="Racionais MC&#39;s" style="--genre-a:#4f2747;--genre-b:#ab5c87"><span class="genre-art">●</span><strong>Racionais MC’s</strong><small>Rap nacional</small></button>
       </div></section>
 
-      <section class="tracks-section"><div class="section-heading track-heading"><div><div class="section-kicker" id="trackKicker">SELEÇÃO DO DIA</div><h2 id="tracksTitle">Descubra músicas</h2><p id="trackSubtitle" class="section-subtitle">Catálogos de artistas independentes e licenças abertas.</p></div><div class="track-tools"><select id="sourceSelect" aria-label="Filtrar catálogo"><option value="all">Todos os catálogos</option><option value="audius">Audius</option><option value="openverse">Openverse</option><option value="ftu">Free To Use</option><option value="local">Minha coleção</option></select><button id="shuffleAll" class="text-action">⇄ Aleatório</button><button id="youtubeSearch" class="text-action" title="Busca externa no YouTube oficial; anúncios podem aparecer">YouTube ↗</button></div></div>
+      <section class="tracks-section"><div class="section-heading track-heading"><div><div class="section-kicker" id="trackKicker">SELEÇÃO DO DIA</div><h2 id="tracksTitle">Descubra músicas</h2><p id="trackSubtitle" class="section-subtitle">Catálogos de artistas independentes e licenças abertas.</p></div><div class="track-tools"><select id="searchKind" aria-label="Tipo de pesquisa"><option value="artist">Buscar artista</option><option value="song">Buscar música</option></select><select id="sourceSelect" aria-label="Filtrar catálogo"><option value="catalog" selected>Originais — catálogo mundial</option><option value="all">Músicas livres (todas)</option><option value="audius">Audius</option><option value="openverse">Openverse</option><option value="ftu">Free To Use</option><option value="local">Minha coleção</option></select><button id="shuffleAll" class="text-action">⇄ Aleatório</button><button id="youtubeSearch" class="text-action" title="Abrir pesquisa no YouTube Music pelo navegador">YouTube Music ↗</button></div></div>
+      <p class="catalog-disclaimer" id="catalogNotice">Busca global de gravações lançadas comercialmente, com artistas e capas corretos. Toque em uma faixa para buscar a versão completa no Brave ou navegador disponível. A busca não autoriza download das gravações comerciais; use a biblioteca offline para seus arquivos.</p>
       <div class="table-head"><span></span><span>TÍTULO / ARTISTA</span><span class="hide-phone">ORIGEM</span><span class="hide-phone">DURAÇÃO</span><span></span></div>
       <div id="trackList" class="track-list" aria-live="polite"><div class="list-loading"><div class="loading-orb"></div> Buscando músicas disponíveis...</div></div>
       <div class="load-more-wrap"><button id="loadMore" class="btn-more" hidden>Carregar mais músicas <span>↓</span></button></div>
       </section>
-      <section class="info-strip"><span>✦</span><div><strong>Música livre, sem surpresas</strong><p>O catálogo é de terceiros. Disponibilidade, reprodução e download dependem das condições de cada faixa. A licença e a fonte aparecem no menu de cada música.</p><p class="storage-notice"><span id="offlineStorageInfo">0 faixas armazenadas</span> · <span id="storagePersistence">Faça backup dos seus arquivos importados.</span></p></div></section>
+      <section class="info-strip"><span>✦</span><div><strong>Originais e músicas livres, cada um no seu lugar</strong><p>O catálogo de artistas identifica títulos, álbuns e intérpretes. As gravações completas abrem no navegador (YouTube Music). A biblioteca offline armazena seus próprios arquivos e faixas de fontes que autorizam o download.</p><p class="storage-notice"><span id="offlineStorageInfo">0 faixas armazenadas</span> · <span id="storagePersistence">Faça backup dos seus arquivos importados.</span></p></div></section>
     </div>
   </main>
 

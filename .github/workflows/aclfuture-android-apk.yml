@@ -1,4 +1,4 @@
-name: ACLFUTURE Music - compilar e verificar APK
+name: ACLFUTURE Music 1.3 - compilar e validar APK
 on:
   workflow_dispatch:
   push:
@@ -24,29 +24,41 @@ jobs:
       - name: Preparar Android SDK
         run: |
           "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" 'platforms;android-35' 'build-tools;35.0.0'
-      - name: Compilar APK de teste
+      - name: Compilar APK
         working-directory: android-studio
         run: gradle --no-daemon :app:assembleDebug
-      - name: Auditoria Android Lint
+      - name: Android Lint
         working-directory: android-studio
         run: gradle --no-daemon :app:lintDebug
-      - name: Verificar assinatura e manifesto do APK
+      - name: Verificar assinatura e manifesto
         run: |
           "$ANDROID_HOME/build-tools/35.0.0/apksigner" verify --verbose --print-certs android-studio/app/build/outputs/apk/debug/app-debug.apk
-          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-studio/app/build/outputs/apk/debug/app-debug.apk | head -20
+          "$ANDROID_HOME/build-tools/35.0.0/aapt" dump badging android-studio/app/build/outputs/apk/debug/app-debug.apk | head -25
+      - name: Consultar catálogo real (teste de conectividade)
+        continue-on-error: true
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          url='https://itunes.apple.com/search?term=Iron%20Maiden&media=music&entity=song&attribute=artistTerm&country=BR&limit=25'
+          with urllib.request.urlopen(url,timeout=20) as response:
+              songs=json.load(response).get('results',[])
+          originals=[x for x in songs if x.get('artistName','').lower()=='iron maiden']
+          print('Faixas com artista creditado Iron Maiden:',len(originals))
+          assert originals
+          PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-APK
+          name: ACLFUTURE-Music-Android-v1.3-APK
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
-      - name: Publicar APK para download direto
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-2-apk'
+      - name: Publicar APK de teste
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-3-teste'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_Android_1.2.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_Android_1.3_TESTE.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -f release/ACLFUTURE_Music_Android_1.2.apk
+          git add -f release/ACLFUTURE_Music_Android_1.3_TESTE.apk
           if ! git diff --cached --quiet; then
-            git commit -m 'Publish signed Android test APK [skip ci]'
-            git push origin HEAD:refs/heads/aclfuture-music-android-1-2-apk
+            git commit -m 'Publish ACLFUTURE Music Android 1.3 APK [skip ci]'
+            git push origin HEAD:refs/heads/aclfuture-music-android-1-3-teste
           fi

@@ -3,11 +3,11 @@ android {
     namespace 'com.aclfuture.music'
     compileSdk 35
     defaultConfig {
-        applicationId 'com.aclfuture.music'
+        applicationId 'com.aclfuture.music.preview13'
         minSdk 26
         targetSdk 34
-        versionCode 12
-        versionName '1.2.0'
+        versionCode 13
+        versionName '1.3.0'
     }
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_17

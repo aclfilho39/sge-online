@@ -32,6 +32,7 @@ public class MainActivity extends Activity {
     private static final String HOME = "https://" + HOST + "/index.html";
     private static final int FILE_PICKER_CODE = 4901;
     private WebView web;
+    private CatalogBridge catalogBridge;
     private ValueCallback<Uri[]> uploadCallback;
     private int rendererRestarts = 0;
 
@@ -75,6 +76,7 @@ public class MainActivity extends Activity {
             @Override public boolean onRenderProcessGone(WebView view, RenderProcessGoneDetail detail) {
                 if(view != web) return false;
                 if (uploadCallback != null) { uploadCallback.onReceiveValue(null); uploadCallback = null; }
+                if(catalogBridge != null) { catalogBridge.close(); catalogBridge = null; }
                 web.destroy();
                 web = null;
                 if(rendererRestarts++ >= 1) {
@@ -106,6 +108,8 @@ public class MainActivity extends Activity {
                 }
             }
         });
+        catalogBridge = new CatalogBridge(this,web);
+        web.addJavascriptInterface(catalogBridge,"ACLCatalog");
         web.loadUrl(HOME);
     }
 
@@ -175,6 +179,7 @@ public class MainActivity extends Activity {
 
     @Override protected void onDestroy() {
         if(uploadCallback != null) { uploadCallback.onReceiveValue(null); uploadCallback = null; }
+        if(catalogBridge != null) { catalogBridge.close(); catalogBridge = null; }
         if(web != null) { web.destroy(); web = null; }
         super.onDestroy();
     }
