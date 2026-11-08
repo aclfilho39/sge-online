@@ -1,4 +1,4 @@
-name: ACLFUTURE Music 1.3 - compilar e validar APK
+name: ACLFUTURE Music 1.4 - compilar e validar APK
 on:
   workflow_dispatch:
   push:
@@ -48,13 +48,13 @@ jobs:
           PY
       - uses: actions/upload-artifact@v4
         with:
-          name: ACLFUTURE-Music-Android-v1.3-APK
+          name: ACLFUTURE-Music-Android-v1.4-EXPERIMENTAL
           path: android-studio/app/build/outputs/apk/debug/app-debug.apk
       - name: Publicar APK de teste
-        if: github.ref == 'refs/heads/aclfuture-music-android-1-3-teste'
+        if: github.ref == 'refs/heads/aclfuture-music-android-1-4-experimental'
         run: |
           mkdir -p release
-          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_Android_1.3_TESTE.apk
+          cp android-studio/app/build/outputs/apk/debug/app-debug.apk release/ACLFUTURE_Music_Android_1.4_EXPERIMENTAL.apk
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add -f release/ACLFUTURE_Music_Android_1.3_TESTE.apk

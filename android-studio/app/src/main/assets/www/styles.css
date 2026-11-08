@@ -102,3 +102,6 @@
   .row-actions button{min-width:30px}
   .catalog-disclaimer{font-size:10px}
 }
+
+/* Experimental native streaming selection */
+@media(max-width:470px){.track-tools #sourceSelect{flex:1.4}}
